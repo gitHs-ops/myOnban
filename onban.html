@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>오늘의 반찬 주문</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --teal:#086266; --teal2:#0a7a7f; --mint:#9adcda;
+  --bg:#f4fafa; --white:#fff;
+  --text:#1a1a1a; --sub:#666; --light:#aaa;
+  --red:#e05; --amber:#E9A826;
+  --shadow:0 2px 16px rgba(8,98,102,.10);
+  --radius:14px;
+}
+html{scroll-behavior:smooth;}
+body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px;}
+
+/* ── 헤더 ── */
+.top-bar{
+  background:linear-gradient(135deg,var(--teal),var(--teal2));
+  padding:16px 20px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:90;
+  box-shadow:0 2px 12px rgba(8,98,102,.25);
+}
+.top-bar h1{font-size:18px;font-weight:900;color:#fff;letter-spacing:-.3px;}
+.cart-btn{
+  position:relative;background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.4);
+  border-radius:999px;padding:6px 14px 6px 10px;
+  display:flex;align-items:center;gap:6px;
+  font-size:13px;font-weight:700;color:#fff;cursor:pointer;
+}
+.cart-btn svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2;}
+.cart-count{
+  position:absolute;top:-6px;right:-6px;
+  background:var(--red);color:#fff;font-size:10px;font-weight:900;
+  width:18px;height:18px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  display:none;
+}
+.cart-count.on{display:flex;}
+
+/* ── 날짜 배너 ── */
+.date-banner{
+  background:linear-gradient(to right,var(--teal),var(--mint));
+  padding:10px 20px;font-size:13px;color:#fff;font-weight:500;
+  display:flex;align-items:center;gap:8px;
+}
+
+/* ── 카테고리 탭 ── */
+.cat-tabs{
+  display:flex;gap:8px;padding:14px 16px 10px;
+  overflow-x:auto;scrollbar-width:none;
+}
+.cat-tabs::-webkit-scrollbar{display:none;}
+.cat-tab{
+  flex-shrink:0;padding:6px 14px;border-radius:999px;
+  font-size:13px;font-weight:500;border:1.5px solid #d6efee;
+  background:#fff;color:var(--sub);cursor:pointer;white-space:nowrap;
+  transition:all .15s;
+}
+.cat-tab.active{background:var(--teal);color:#fff;border-color:var(--teal);}
+
+/* ── 메뉴 그리드 ── */
+.menu-grid{
+  display:flex;flex-direction:column;gap:8px;
+  padding:0 14px;
+}
+.menu-card{
+  background:var(--white);border-radius:var(--radius);
+  box-shadow:var(--shadow);overflow:hidden;
+  cursor:pointer;transition:transform .12s,box-shadow .12s;
+  border:1.5px solid transparent;
+  display:flex;align-items:center;padding:14px 12px;gap:12px;
+}
+.menu-card:active{transform:scale(.98);}
+.menu-card.child-ok{border-left:4px solid #FEE500;}
+.menu-cat-dot{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;
+}
+.menu-info{flex:1;min-width:0;}
+.menu-name{font-size:15px;font-weight:700;color:var(--text);line-height:1.3;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.menu-badges{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;}
+.badge{font-size:10px;padding:2px 7px;border-radius:999px;font-weight:700;}
+.badge-cat{background:#e8f5f4;color:var(--teal);}
+.badge-child{background:#FEE500;color:#3A1D1D;}
+.menu-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.menu-price{font-size:15px;font-weight:900;color:var(--teal);}
+.menu-price span{font-size:11px;font-weight:400;color:var(--sub);}
+.menu-arrow{font-size:18px;color:#ccc;}
+
+/* ── 페이지 전환 ── */
+.page{display:none;}
+.page.active{display:block;}
+
+/* ── 상세 페이지 ── */
+.detail-img{
+  width:100%;aspect-ratio:4/3;object-fit:cover;
+  background:linear-gradient(135deg,#e8f5f4,#c8ebe9);
+  display:flex;align-items:center;justify-content:center;font-size:64px;
+}
+.detail-img img{width:100%;height:100%;object-fit:cover;}
+.detail-body{padding:20px;}
+.detail-name{font-size:22px;font-weight:900;margin-bottom:8px;}
+.detail-badges{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.detail-price{font-size:28px;font-weight:900;color:var(--teal);margin-bottom:20px;}
+.detail-price span{font-size:14px;font-weight:400;color:var(--sub);}
+.qty-row{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+.qty-row label{font-size:14px;font-weight:700;color:var(--sub);}
+.qty-ctrl{display:flex;align-items:center;gap:0;border:1.5px solid #d6efee;border-radius:10px;overflow:hidden;}
+.qty-ctrl button{
+  width:38px;height:38px;border:none;background:#f4fafa;
+  font-size:18px;font-weight:700;color:var(--teal);cursor:pointer;
+}
+.qty-ctrl button:active{background:#e8f5f4;}
+.qty-ctrl span{width:44px;text-align:center;font-size:16px;font-weight:700;}
+.action-row{display:flex;gap:10px;}
+.btn-cart{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px;border-radius:12px;font-size:15px;font-weight:700;
+  border:2px solid var(--teal);background:#fff;color:var(--teal);cursor:pointer;
+  transition:all .15s;
+}
+.btn-cart:active{background:#e8f5f4;}
+.btn-cart svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;}
+.btn-order{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px;border-radius:12px;font-size:15px;font-weight:700;
+  border:none;background:var(--teal);color:#fff;cursor:pointer;
+  transition:opacity .15s;
+}
+.btn-order:active{opacity:.85;}
+.btn-order svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;}
+
+/* ── 뒤로 버튼 ── */
+.back-bar{
+  display:flex;align-items:center;gap:8px;
+  padding:14px 16px;cursor:pointer;color:var(--teal);
+  font-size:14px;font-weight:700;
+}
+.back-bar svg{width:20px;height:20px;fill:none;stroke:var(--teal);stroke-width:2.5;}
+
+/* ── 장바구니 ── */
+.cart-list{padding:0 14px;}
+.cart-item{
+  background:#fff;border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:14px;
+  margin-bottom:10px;
+  display:flex;align-items:center;gap:12px;
+}
+.cart-check{width:20px;height:20px;accent-color:var(--teal);flex-shrink:0;cursor:pointer;}
+.cart-thumb{
+  width:52px;height:52px;border-radius:8px;object-fit:cover;flex-shrink:0;
+  background:linear-gradient(135deg,#e8f5f4,#c8ebe9);
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+}
+.cart-thumb img{width:100%;height:100%;object-fit:cover;border-radius:8px;}
+.cart-info{flex:1;min-width:0;}
+.cart-iname{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cart-iprice{font-size:13px;color:var(--teal);font-weight:700;margin-top:2px;}
+.cart-qty-ctrl{display:flex;align-items:center;gap:0;border:1px solid #d6efee;border-radius:8px;overflow:hidden;}
+.cart-qty-ctrl button{width:28px;height:28px;border:none;background:#f4fafa;font-size:14px;font-weight:700;color:var(--teal);cursor:pointer;}
+.cart-qty-ctrl span{width:32px;text-align:center;font-size:13px;font-weight:700;}
+.cart-del{background:none;border:none;color:#ccc;font-size:18px;cursor:pointer;padding:4px;flex-shrink:0;}
+.cart-del:hover{color:var(--red);}
+
+.cart-summary{
+  background:#fff;border-radius:var(--radius);
+  box-shadow:var(--shadow);margin:10px 14px;padding:16px;
+}
+.cart-summary-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.cart-summary-row:last-child{margin-bottom:0;}
+.sum-label{font-size:13px;color:var(--sub);}
+.sum-value{font-size:13px;font-weight:700;}
+.sum-total{font-size:18px;font-weight:900;color:var(--teal);}
+.cart-actions{padding:0 14px;display:flex;gap:10px;margin-top:14px;}
+.btn-select-all{
+  padding:12px 16px;border-radius:10px;font-size:13px;font-weight:700;
+  border:1.5px solid #d6efee;background:#fff;color:var(--sub);cursor:pointer;
+}
+.btn-cart-order{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px;border-radius:12px;font-size:15px;font-weight:700;
+  border:none;background:var(--teal);color:#fff;cursor:pointer;
+}
+.btn-cart-order svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2;}
+.empty-cart{
+  text-align:center;padding:60px 20px;color:var(--light);
+}
+.empty-cart span{font-size:48px;display:block;margin-bottom:12px;}
+.empty-cart p{font-size:14px;}
+.cart-del-sel{
+  background:none;border:1.5px solid #f5c0c0;color:var(--red);
+  border-radius:10px;padding:12px 14px;font-size:13px;font-weight:700;cursor:pointer;
+}
+
+/* ── 주문 확인 ── */
+.order-section{padding:16px 14px 0;}
+.order-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:12px;}
+.order-item{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px 0;border-bottom:1px solid #f0faf9;
+}
+.order-item:last-child{border-bottom:none;}
+.order-iname{font-size:14px;font-weight:500;}
+.order-iqty{font-size:12px;color:var(--sub);margin-top:2px;}
+.order-iprice{font-size:14px;font-weight:700;color:var(--teal);}
+.order-total-box{
+  background:linear-gradient(135deg,var(--teal),var(--teal2));
+  margin:14px;border-radius:var(--radius);padding:18px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.order-total-label{font-size:14px;color:rgba(255,255,255,.8);}
+.order-total-val{font-size:24px;font-weight:900;color:#fff;}
+.btn-confirm{
+  margin:0 14px;width:calc(100% - 28px);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:16px;border-radius:12px;font-size:16px;font-weight:900;
+  border:none;background:var(--amber);color:#fff;cursor:pointer;
+  box-shadow:0 4px 16px rgba(233,168,38,.35);
+}
+.btn-confirm svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2;}
+
+/* ── 결제 페이지 ── */
+.payment-wrap{padding:24px 14px;}
+.payment-icon{text-align:center;font-size:56px;margin-bottom:16px;}
+.payment-title{text-align:center;font-size:20px;font-weight:900;margin-bottom:6px;}
+.payment-sub{text-align:center;font-size:13px;color:var(--sub);margin-bottom:28px;}
+.bank-card{
+  background:linear-gradient(135deg,var(--teal),var(--teal2));
+  border-radius:20px;padding:24px;color:#fff;margin-bottom:16px;
+  box-shadow:0 6px 24px rgba(8,98,102,.3);
+}
+.bank-label{font-size:12px;opacity:.75;margin-bottom:4px;}
+.bank-value{font-size:18px;font-weight:900;letter-spacing:.5px;margin-bottom:16px;}
+.bank-account{font-size:22px;font-weight:900;letter-spacing:1px;}
+.copy-row{display:flex;gap:8px;margin-bottom:14px;}
+.btn-copy{
+  flex:1;padding:13px;border-radius:10px;font-size:14px;font-weight:700;
+  border:1.5px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);
+  color:#fff;cursor:pointer;transition:background .15s;
+}
+.btn-copy:active{background:rgba(255,255,255,.3);}
+.amount-box{
+  background:#fff;border-radius:var(--radius);padding:16px;
+  margin-bottom:16px;box-shadow:var(--shadow);
+}
+.amount-label{font-size:12px;color:var(--sub);margin-bottom:4px;}
+.amount-value{font-size:26px;font-weight:900;color:var(--teal);}
+.payment-note{
+  background:#fffbea;border:1px solid #FEE500;border-radius:10px;
+  padding:12px 14px;font-size:12px;color:#3A1D1D;line-height:1.8;
+  margin-bottom:20px;
+}
+.btn-home{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:15px;border-radius:12px;font-size:15px;font-weight:700;
+  border:none;background:var(--teal);color:#fff;cursor:pointer;
+}
+.btn-home svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2;}
+
+/* ── 공통 ── */
+.section-title{font-size:15px;font-weight:700;padding:16px 16px 10px;color:var(--text);}
+.toast{
+  position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:999px;
+  font-size:13px;font-weight:500;opacity:0;transition:all .3s;pointer-events:none;
+  white-space:nowrap;z-index:999;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.no-menu{text-align:center;padding:60px 20px;color:var(--light);}
+.no-menu span{font-size:48px;display:block;margin-bottom:12px;}
+</style>
+</head>
+<body>
+
+<!-- 상단바 -->
+<div class="top-bar">
+  <h1>&#127857; 오늘의 반찬</h1>
+  <button class="cart-btn" onclick="goPage('cart')">
+    <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+    장바구니
+    <span class="cart-count" id="cartCount">0</span>
+  </button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ════ 페이지: 메뉴 목록 ════ -->
+<div id="page-list" class="page active">
+  <div class="date-banner" id="dateBanner">&#128197; 오늘의 메뉴</div>
+  <div class="cat-tabs" id="catTabs"></div>
+  <div class="menu-grid" id="menuGrid"></div>
+  <div class="no-menu" id="noMenu" style="display:none;">
+    <span>&#127857;</span>
+    <p>오늘 등록된 메뉴가 없어요.</p>
+  </div>
+</div>
+
+<!-- ════ 페이지: 상세 ════ -->
+<div id="page-detail" class="page">
+  <div class="back-bar" onclick="goPage('list')">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    메뉴 목록으로
+  </div>
+  <div id="detailContent"></div>
+</div>
+
+<!-- ════ 페이지: 장바구니 ════ -->
+<div id="page-cart" class="page">
+  <div class="back-bar" onclick="goPage('list')">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    메뉴 목록으로
+  </div>
+  <div class="section-title">장바구니</div>
+  <div id="cartContent"></div>
+</div>
+
+<!-- ════ 페이지: 주문 확인 ════ -->
+<div id="page-order" class="page">
+  <div class="back-bar" onclick="goPage('cart')">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    장바구니로
+  </div>
+  <div id="orderContent"></div>
+</div>
+
+<!-- ════ 페이지: 결제 ════ -->
+<div id="page-payment" class="page">
+  <div id="paymentContent"></div>
+</div>
+
+<script>
+var CAT_COLOR={'메인':'#1D9E75','반찬':'#378ADD','김치':'#D4537E','밀키트':'#E9A826','기타':'#888780'};
+var CAT_EMOJI={'메인':'🍳','반찬':'🥗','김치':'🥬','밀키트':'📦','기타':'🍽'};
+var BANK={name:'국민은행',holder:'김현철',account:'118210210117'};
+
+var allMenus=[];
+var filterCat='전체';
+var cart=[];
+var detailMenu=null;
+var detailQty=1;
+var orderItems=[];
+
+function toISO(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function comma(n){return Number(n).toLocaleString();}
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._t);
+  t._t=setTimeout(function(){t.classList.remove('show');},2000);
+}
+function goPage(name){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('page-'+name).classList.add('active');
+  window.scrollTo(0,0);
+  if(name==='cart')renderCart();
+  if(name==='order')renderOrder();
+  if(name==='payment')renderPayment();
+}
+
+// ── 데이터 로드 ──
+function loadMenus(){
+  var iso=toISO(new Date());
+  var raw=localStorage.getItem('menus_'+iso);
+  allMenus=raw?JSON.parse(raw):[];
+  allMenus=allMenus.filter(function(m){return (m.stock||0)>0;});
+  var d=new Date();
+  var label=d.toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
+  document.getElementById('dateBanner').textContent='📅 '+label+' 오늘의 메뉴';
+  renderCatTabs();
+  renderMenuGrid();
+}
+
+// ── 카테고리 탭 ──
+function renderCatTabs(){
+  var cats=['전체'];
+  Object.keys(CAT_COLOR).forEach(function(c){
+    if(allMenus.some(function(m){return m.cat===c;}))cats.push(c);
+  });
+  var tabs=document.getElementById('catTabs');
+  tabs.innerHTML='';
+  cats.forEach(function(c){
+    var btn=document.createElement('button');
+    btn.className='cat-tab'+(filterCat===c?' active':'');
+    btn.textContent=c;
+    btn.onclick=function(){setCat(c);};
+    tabs.appendChild(btn);
+  });
+}
+function setCat(cat){filterCat=cat;renderCatTabs();renderMenuGrid();}
+
+// ── 메뉴 그리드 ──
+function renderMenuGrid(){
+  var filtered=filterCat==='전체'?allMenus:allMenus.filter(function(m){return m.cat===filterCat;});
+  var grid=document.getElementById('menuGrid');
+  var noMenu=document.getElementById('noMenu');
+  if(!filtered.length){grid.innerHTML='';noMenu.style.display='block';return;}
+  noMenu.style.display='none';
+  grid.innerHTML='';
+  filtered.forEach(function(m){
+    var card=document.createElement('div');
+    card.className='menu-card'+(m.child?' child-ok':'');
+    card.onclick=function(){openDetail(m.id);};
+
+    // 카테고리 색상 점
+    var dot=document.createElement('div');
+    dot.className='menu-cat-dot';
+    dot.style.background=CAT_COLOR[m.cat]||'#888';
+
+    // 텍스트 정보
+    var info=document.createElement('div');
+    info.className='menu-info';
+
+    var nameEl=document.createElement('div');
+    nameEl.className='menu-name';
+    nameEl.textContent=m.name;
+
+    var badges=document.createElement('div');
+    badges.className='menu-badges';
+    var catBadge=document.createElement('span');
+    catBadge.className='badge badge-cat';
+    catBadge.textContent=m.cat;
+    badges.appendChild(catBadge);
+    if(m.child){
+      var cb=document.createElement('span');
+      cb.className='badge badge-child';
+      cb.textContent='👧 어린이OK';
+      badges.appendChild(cb);
+    }
+
+    info.appendChild(nameEl);
+    info.appendChild(badges);
+
+    // 우측: 가격 + 화살표
+    var right=document.createElement('div');
+    right.className='menu-right';
+
+    var priceEl=document.createElement('div');
+    priceEl.className='menu-price';
+    priceEl.innerHTML=comma(m.price)+'<span>천원</span>';
+
+    var arrow=document.createElement('span');
+    arrow.className='menu-arrow';
+    arrow.textContent='›';
+
+    right.appendChild(priceEl);
+    right.appendChild(arrow);
+
+    card.appendChild(dot);
+    card.appendChild(info);
+    card.appendChild(right);
+    grid.appendChild(card);
+  });
+}
+
+// ── 상세 ──
+function openDetail(id){
+  detailMenu=allMenus.find(function(m){return m.id===id;});
+  if(!detailMenu)return;
+  detailQty=1;
+  renderDetail();
+  goPage('detail');
+}
+function renderDetail(){
+  var m=detailMenu;
+  var wrap=document.getElementById('detailContent');
+  wrap.innerHTML='';
+
+  var imgWrap=document.createElement('div');
+  imgWrap.className='detail-img';
+  if(m.imgUrl){
+    var img=document.createElement('img');
+    img.src=m.imgUrl; img.alt=m.name;
+    imgWrap.appendChild(img);
+  } else {
+    imgWrap.textContent=CAT_EMOJI[m.cat]||'🍽';
+  }
+
+  var body=document.createElement('div');
+  body.className='detail-body';
+
+  var badges=document.createElement('div');
+  badges.className='detail-badges';
+  var cb=document.createElement('span');
+  cb.className='badge badge-cat';
+  cb.style.cssText='font-size:12px;padding:3px 10px;';
+  cb.textContent=m.cat;
+  badges.appendChild(cb);
+  if(m.child){
+    var cb2=document.createElement('span');
+    cb2.className='badge badge-child';
+    cb2.style.cssText='font-size:12px;padding:3px 10px;';
+    cb2.textContent='👧 어린이도 OK';
+    badges.appendChild(cb2);
+  }
+
+  var nameEl=document.createElement('div');
+  nameEl.className='detail-name';
+  nameEl.textContent=m.name;
+
+  var priceEl=document.createElement('div');
+  priceEl.className='detail-price';
+  priceEl.innerHTML=comma(m.price)+'<span>천원</span>';
+
+  var qtyRow=document.createElement('div');
+  qtyRow.className='qty-row';
+  qtyRow.innerHTML='<label>수량</label>'
+    +'<div class="qty-ctrl">'
+    +'<button onclick="changeDetailQty(-1)">-</button>'
+    +'<span id="detailQtyDisp">'+detailQty+'</span>'
+    +'<button onclick="changeDetailQty(1)">+</button>'
+    +'</div>';
+
+  var actions=document.createElement('div');
+  actions.className='action-row';
+
+  var btnCart=document.createElement('button');
+  btnCart.className='btn-cart';
+  btnCart.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>장바구니';
+  btnCart.onclick=addToCart;
+
+  var btnOrder=document.createElement('button');
+  btnOrder.className='btn-order';
+  btnOrder.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/></svg>주문하기';
+  btnOrder.onclick=buyNow;
+
+  actions.appendChild(btnCart);
+  actions.appendChild(btnOrder);
+  body.appendChild(badges);
+  body.appendChild(nameEl);
+  body.appendChild(priceEl);
+  body.appendChild(qtyRow);
+  body.appendChild(actions);
+  wrap.appendChild(imgWrap);
+  wrap.appendChild(body);
+}
+function changeDetailQty(d){
+  detailQty=Math.max(1,detailQty+d);
+  var el=document.getElementById('detailQtyDisp');
+  if(el)el.textContent=detailQty;
+}
+function addToCart(){
+  var m=detailMenu;
+  var existing=cart.find(function(c){return c.menuId===m.id;});
+  if(existing){existing.qty+=detailQty;}
+  else{cart.push({menuId:m.id,name:m.name,price:m.price,qty:detailQty,imgUrl:m.imgUrl||null,child:m.child,checked:true});}
+  updateCartCount();
+  showToast('장바구니에 담았어요!');
+}
+function buyNow(){
+  addToCart();
+  orderItems=cart.filter(function(c){return c.checked;});
+  goPage('order');
+}
+
+// ── 장바구니 ──
+function updateCartCount(){
+  var cnt=cart.reduce(function(s,c){return s+c.qty;},0);
+  var el=document.getElementById('cartCount');
+  el.textContent=cnt;
+  if(cnt>0)el.classList.add('on');else el.classList.remove('on');
+}
+function renderCart(){
+  var el=document.getElementById('cartContent');
+  el.innerHTML='';
+  if(!cart.length){
+    el.innerHTML='<div class="empty-cart"><span>🛒</span><p>장바구니가 비어있어요.<br>메뉴를 담아보세요!</p></div>';
+    return;
+  }
+  var listWrap=document.createElement('div');
+  listWrap.className='cart-list';
+
+  cart.forEach(function(c,i){
+    var item=document.createElement('div');
+    item.className='cart-item';
+
+    var chk=document.createElement('input');
+    chk.type='checkbox'; chk.className='cart-check'; chk.checked=c.checked;
+    chk.onchange=function(){toggleCheck(i,this.checked);};
+
+    var thumb=document.createElement('div');
+    thumb.className='cart-thumb';
+    if(c.imgUrl){
+      var ti=document.createElement('img');
+      ti.src=c.imgUrl; ti.alt=c.name;
+      thumb.appendChild(ti);
+    } else { thumb.textContent='🍽'; }
+
+    var info=document.createElement('div');
+    info.className='cart-info';
+    info.innerHTML='<div class="cart-iname">'+c.name+'</div>'
+      +'<div class="cart-iprice">'+comma(c.price*c.qty)+'천원</div>';
+
+    var qtyCtrl=document.createElement('div');
+    qtyCtrl.className='cart-qty-ctrl';
+    var qm=document.createElement('button'); qm.textContent='-';
+    qm.onclick=function(){cartQty(i,-1);};
+    var qs=document.createElement('span'); qs.textContent=c.qty;
+    var qp=document.createElement('button'); qp.textContent='+';
+    qp.onclick=function(){cartQty(i,1);};
+    qtyCtrl.appendChild(qm); qtyCtrl.appendChild(qs); qtyCtrl.appendChild(qp);
+
+    var del=document.createElement('button');
+    del.className='cart-del'; del.textContent='✕';
+    del.onclick=function(){cartDel(i);};
+
+    item.appendChild(chk); item.appendChild(thumb);
+    item.appendChild(info); item.appendChild(qtyCtrl); item.appendChild(del);
+    listWrap.appendChild(item);
+  });
+  el.appendChild(listWrap);
+
+  var checked=cart.filter(function(c){return c.checked;});
+  var total=checked.reduce(function(s,c){return s+c.price*c.qty;},0);
+  var allChk=cart.length>0&&cart.every(function(c){return c.checked;});
+
+  var summary=document.createElement('div');
+  summary.className='cart-summary';
+  summary.innerHTML='<div class="cart-summary-row"><span class="sum-label">선택 항목</span><span class="sum-value">'+checked.length+'개</span></div>'
+    +'<div class="cart-summary-row"><span class="sum-label">합계금액</span><span class="sum-value sum-total">'+comma(total)+'천원</span></div>';
+  el.appendChild(summary);
+
+  var actions=document.createElement('div');
+  actions.className='cart-actions';
+
+  var btnAll=document.createElement('button');
+  btnAll.className='btn-select-all';
+  btnAll.textContent=allChk?'전체해제':'전체선택';
+  btnAll.onclick=function(){toggleAll(!allChk);};
+
+  var btnDel=document.createElement('button');
+  btnDel.className='cart-del-sel';
+  btnDel.textContent='선택삭제';
+  btnDel.onclick=delSelected;
+
+  var btnOrd=document.createElement('button');
+  btnOrd.className='btn-cart-order';
+  btnOrd.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" width="20" height="20"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/></svg>주문하기';
+  btnOrd.onclick=cartOrder;
+
+  actions.appendChild(btnAll); actions.appendChild(btnDel); actions.appendChild(btnOrd);
+  el.appendChild(actions);
+}
+function toggleCheck(i,v){cart[i].checked=v;renderCart();}
+function toggleAll(v){cart.forEach(function(c){c.checked=v;});renderCart();}
+function cartQty(i,d){cart[i].qty=Math.max(1,cart[i].qty+d);updateCartCount();renderCart();}
+function cartDel(i){cart.splice(i,1);updateCartCount();renderCart();}
+function delSelected(){cart=cart.filter(function(c){return !c.checked;});updateCartCount();renderCart();}
+function cartOrder(){
+  orderItems=cart.filter(function(c){return c.checked;});
+  if(!orderItems.length){showToast('주문할 항목을 선택해주세요.');return;}
+  goPage('order');
+}
+
+// ── 주문 확인 ──
+function renderOrder(){
+  var el=document.getElementById('orderContent');
+  el.innerHTML='';
+  if(!orderItems.length){
+    el.innerHTML='<div class="no-menu"><span>🛒</span><p>주문 항목이 없어요.</p></div>';
+    return;
+  }
+  var total=orderItems.reduce(function(s,c){return s+c.price*c.qty;},0);
+
+  var sec=document.createElement('div');
+  sec.className='order-section';
+  var title=document.createElement('div');
+  title.className='order-title';
+  title.textContent='📋 주문 내역 확인';
+  sec.appendChild(title);
+
+  var listBox=document.createElement('div');
+  listBox.style.cssText='background:#fff;border-radius:14px;padding:4px 16px;box-shadow:0 2px 12px rgba(8,98,102,.08);';
+  orderItems.forEach(function(c){
+    var row=document.createElement('div');
+    row.className='order-item';
+    row.innerHTML='<div><div class="order-iname">'+c.name+'</div><div class="order-iqty">'+c.qty+'개</div></div>'
+      +'<div class="order-iprice">'+comma(c.price*c.qty)+'천원</div>';
+    listBox.appendChild(row);
+  });
+  sec.appendChild(listBox);
+  el.appendChild(sec);
+
+  var totalBox=document.createElement('div');
+  totalBox.className='order-total-box';
+  totalBox.innerHTML='<span class="order-total-label">최종 결제금액</span>'
+    +'<span class="order-total-val">'+comma(total)+'천원</span>';
+  el.appendChild(totalBox);
+
+  var btnCfm=document.createElement('button');
+  btnCfm.className='btn-confirm';
+  btnCfm.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" width="22" height="22"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>구매 확정하기';
+  btnCfm.onclick=function(){goPage('payment');};
+  el.appendChild(btnCfm);
+}
+
+// ── 결제 ──
+function renderPayment(){
+  var total=orderItems.reduce(function(s,c){return s+c.price*c.qty;},0);
+  var wrap=document.getElementById('paymentContent');
+  wrap.innerHTML='';
+
+  var pw=document.createElement('div');
+  pw.className='payment-wrap';
+  pw.innerHTML=''
+    +'<div class="payment-icon">💰</div>'
+    +'<div class="payment-title">계좌이체 안내</div>'
+    +'<div class="payment-sub">아래 계좌로 금액을 입금해주세요</div>'
+    +'<div class="bank-card">'
+      +'<div class="bank-label">은행</div>'
+      +'<div class="bank-value">'+BANK.name+'</div>'
+      +'<div class="bank-label">예금주</div>'
+      +'<div class="bank-value">'+BANK.holder+'</div>'
+      +'<div class="bank-label">계좌번호</div>'
+      +'<div class="bank-account">'+BANK.account+'</div>'
+      +'<div class="copy-row" style="margin-top:16px;">'
+        +'<button class="btn-copy" onclick="copyAccount()">📋 계좌번호 복사</button>'
+      +'</div>'
+    +'</div>'
+    +'<div class="amount-box">'
+      +'<div class="amount-label">입금 금액</div>'
+      +'<div class="amount-value">'+comma(total)+'천원</div>'
+    +'</div>'
+    +'<div class="payment-note">'
+      +'ℹ 입금 후 주문이 확정됩니다.<br>'
+      +'ℹ 입금자명을 주문자 성함으로 해주세요.<br>'
+      +'ℹ 문의: 카카오채널로 연락주세요.'
+    +'</div>'
+    +'<button class="btn-home" onclick="goHome()">'
+      +'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" width="20" height="20"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>'
+      +'홈으로'
+    +'</button>';
+  wrap.appendChild(pw);
+}
+function copyAccount(){
+  navigator.clipboard.writeText(BANK.account).then(function(){showToast('계좌번호가 복사됐어요!');});
+}
+function goHome(){
+  cart=[];orderItems=[];
+  updateCartCount();
+  filterCat='전체';
+  goPage('list');
+  renderCatTabs();
+  renderMenuGrid();
+}
+
+window.onload=function(){loadMenus();};
+</script>
+</body>
+</html>

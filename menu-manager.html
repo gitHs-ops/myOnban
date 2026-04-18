@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>오늘의 메뉴 관리</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Noto Sans KR",sans-serif;background:linear-gradient(to bottom,#086266,#9adcda);min-height:100vh;padding:24px 16px 60px;color:#1a1a1a;}
+.header{text-align:left;margin-bottom:20px;}
+.header h1{font-size:22px;font-weight:700;color:#fff;}
+.card{background:#fff;border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,0.08);}
+.card-title{font-size:14px;font-weight:700;color:#086266;margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.stat{background:#f0faf9;border-radius:10px;padding:12px 8px;text-align:center;}
+.stat-num{font-size:22px;font-weight:700;color:#086266;}
+.stat-lbl{font-size:11px;color:#666;margin-top:2px;}
+.input-row{display:flex;gap:8px;margin-bottom:10px;}
+.input-row input{padding:10px 12px;border:1.5px solid #cde8e7;border-radius:10px;font-size:14px;font-family:inherit;outline:none;}
+.input-row input:focus{border-color:#086266;}
+.input-row input[type="text"]{flex:1;}
+.input-row input[type="number"]{flex:1;text-align:center;}
+select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px;font-size:14px;font-family:inherit;outline:none;color:#333;}
+.child-toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:#555;margin-bottom:12px;cursor:pointer;user-select:none;}
+.child-toggle input{accent-color:#f9a826;width:16px;height:16px;}
+.btn{padding:10px 18px;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;border:none;transition:opacity .15s,transform .1s;}
+.btn:active{transform:scale(.97);}
+.btn-add{background:#086266;color:#fff;width:100%;}
+.btn-add:hover{opacity:.9;}
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.tab{padding:5px 12px;border-radius:999px;font-size:12px;font-weight:500;cursor:pointer;border:none;background:#e8f5f4;color:#086266;font-family:inherit;}
+.tab.active{background:#086266;color:#fff;}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:#555;}
+.legend-dot{width:10px;height:10px;border-radius:50%;}
+.menu-list{display:flex;flex-direction:column;gap:8px;}
+.menu-item{display:flex;align-items:center;background:#f8fffe;border:1px solid #d6efee;border-radius:10px;padding:10px 12px;gap:8px;}
+.menu-item .cat-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.menu-item .name{flex:1;font-size:14px;color:#1a1a1a;}
+.img-btn{width:28px;height:28px;border-radius:6px;border:1px solid #cde8e7;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:14px;}
+.img-btn:hover{background:#e8f5f4;}
+.menu-thumb{width:34px;height:34px;border-radius:6px;object-fit:cover;flex-shrink:0;border:1px solid #d6efee;cursor:pointer;}
+.price-wrap{display:flex;align-items:center;flex-shrink:0;}
+.price-display{font-size:12px;color:#086266;font-weight:700;background:#e8f5f4;border-radius:6px;padding:2px 8px;cursor:pointer;white-space:nowrap;border:1.5px solid transparent;}
+.price-display:hover{border-color:#9adcda;}
+.price-input{width:60px;font-size:12px;font-weight:700;color:#086266;background:#e8f5f4;border:1.5px solid #086266;border-radius:6px;padding:2px 6px;text-align:center;outline:none;font-family:inherit;display:none;}
+.qty-ctrl{display:flex;align-items:center;gap:4px;}
+.qty-btn{width:24px;height:24px;border-radius:6px;border:1px solid #cde8e7;background:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#086266;font-weight:700;padding:0;line-height:1;}
+.qty{background:#e8f5f4;color:#086266;font-size:13px;font-weight:700;padding:2px 8px;border-radius:6px;min-width:28px;text-align:center;}
+.del-btn{background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:2px 4px;flex-shrink:0;}
+.del-btn:hover{color:#e05;}
+.kakao-box{background:#FEE500;border-radius:12px;padding:16px;margin-bottom:14px;}
+.kakao-header{font-size:13px;font-weight:700;color:#3A1D1D;margin-bottom:8px;}
+.kakao-body{font-size:13px;color:#3A1D1D;white-space:pre-wrap;line-height:1.9;font-family:monospace;max-height:280px;overflow-y:auto;}
+.copy-btn{width:100%;background:#3A1D1D;color:#FEE500;font-size:14px;font-weight:700;padding:11px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;}
+.copy-btn.copied{background:#086266;color:#fff;}
+.paste-area{width:100%;min-height:120px;padding:12px;font-size:13px;font-family:monospace;border:2px dashed #cde8e7;border-radius:10px;resize:vertical;outline:none;color:#333;background:#f8fffe;line-height:1.8;}
+.paste-area:focus{border-color:#086266;}
+.parse-btn{width:100%;background:#FEE500;color:#3A1D1D;font-size:14px;font-weight:700;padding:11px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;margin-top:10px;}
+.parse-result{margin-top:12px;display:none;}
+.parse-result-title{font-size:13px;font-weight:700;color:#086266;margin-bottom:8px;}
+.parse-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:#f0faf9;margin-bottom:6px;font-size:13px;}
+.parse-item .pi-name{flex:1;color:#1a1a1a;}
+.parse-item .pi-qty{background:#e8f5f4;color:#086266;font-weight:700;padding:2px 8px;border-radius:6px;font-size:12px;}
+.parse-item select{font-size:12px;padding:3px 6px;border:1px solid #cde8e7;border-radius:6px;font-family:inherit;color:#333;outline:none;width:auto;}
+.import-btn{width:100%;background:#086266;color:#fff;font-size:14px;font-weight:700;padding:11px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;margin-top:6px;}
+.history-item{border:1px solid #d6efee;border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:background .15s;}
+.history-item:hover{background:#f0faf9;}
+.history-item-header{display:flex;align-items:center;justify-content:space-between;}
+.history-item .arrow{font-size:18px;color:#ccc;flex-shrink:0;}
+.history-date{font-size:13px;font-weight:700;color:#086266;}
+.history-meta{font-size:12px;color:#888;margin-top:2px;}
+.history-preview{font-size:12px;color:#555;margin-top:6px;line-height:1.8;}
+.tag-pill{display:inline-block;background:#e8f5f4;color:#086266;border-radius:999px;padding:1px 8px;font-size:11px;margin:2px 3px 2px 0;}
+.empty{text-align:center;color:#aaa;font-size:13px;padding:20px;}
+.date-picker-wrap{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
+.date-nav-btn{width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,.25);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.date-nav-btn:hover{background:rgba(255,255,255,.45);}
+.date-display-btn{background:rgba(255,255,255,.95);border:none;border-radius:999px;padding:7px 20px;font-size:14px;font-weight:700;color:#086266;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(0,0,0,.12);}
+.date-today-btn{background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.6);border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;}
+.date-today-btn:hover{background:rgba(255,255,255,.35);}
+.cal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;align-items:center;justify-content:center;}
+.cal-overlay.open{display:flex;}
+.cal-popup{background:#fff;border-radius:20px;padding:20px;width:320px;max-width:92vw;box-shadow:0 8px 32px rgba(0,0,0,.18);}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.cal-header span{font-size:15px;font-weight:700;color:#1a1a1a;}
+.cal-nav{width:30px;height:30px;border-radius:8px;border:1px solid #e0e0e0;background:#f8f8f8;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.cal-nav:hover{background:#e8f5f4;}
+.cal-dow{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-bottom:6px;}
+.cal-dow span{font-size:11px;font-weight:700;color:#aaa;padding:4px 0;}
+.cal-dow span:first-child{color:#e05;}
+.cal-dow span:last-child{color:#378ADD;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cal-day{text-align:center;padding:7px 0;font-size:13px;border-radius:8px;cursor:pointer;color:#1a1a1a;transition:background .12s;position:relative;}
+.cal-day:hover{background:#e8f5f4;}
+.cal-day.today{font-weight:700;color:#086266;}
+.cal-day.selected{background:#086266;color:#fff!important;font-weight:700;}
+.cal-day.other-month{color:#ccc;}
+.cal-day.sun{color:#e05;}
+.cal-day.sat{color:#378ADD;}
+.cal-day.has-data::after{content:"";position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:#E9A826;}
+.cal-day.selected.has-data::after{background:rgba(255,255,255,.7);}
+.cal-close{width:100%;margin-top:14px;padding:10px;background:#f0faf9;border:none;border-radius:10px;font-size:13px;font-weight:700;color:#086266;cursor:pointer;font-family:inherit;}
+.img-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;}
+.img-overlay.open{display:flex;}
+.img-popup{background:#fff;border-radius:20px;padding:22px;width:340px;max-width:93vw;box-shadow:0 8px 32px rgba(0,0,0,.2);}
+.img-popup-title{font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:16px;}
+.img-preview-wrap{width:100%;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#f0faf9;border:1.5px dashed #cde8e7;display:flex;align-items:center;justify-content:center;margin-bottom:14px;}
+.img-preview-wrap img{width:100%;height:100%;object-fit:cover;}
+.img-placeholder{text-align:center;color:#aaa;font-size:13px;}
+.img-placeholder span{font-size:32px;display:block;margin-bottom:6px;}
+.img-status{display:none;text-align:center;padding:8px 0;font-size:13px;color:#086266;margin-bottom:8px;}
+.img-btn-row{display:flex;gap:8px;margin-bottom:8px;}
+.img-btn-upload{flex:1;background:#086266;color:#fff;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;}
+.img-btn-upload:disabled{opacity:.5;cursor:not-allowed;}
+.img-btn-delete{background:#fff;color:#e05;border:1.5px solid #f5c0c0;border-radius:10px;padding:11px 14px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;}
+.img-btn-delete:hover{background:#fff0f0;}
+.img-btn-cancel{width:100%;background:#f0faf9;color:#086266;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;}
+.menuname-wrap{position:relative;flex:1;}
+.menuname-wrap input{width:100%;}
+.dup-warn{display:none;font-size:12px;color:#c0392b;background:#fff0f0;border:1px solid #f5c0c0;border-radius:8px;padding:6px 10px;margin-top:6px;}
+.dup-warn.show{display:block;}
+.ac-list{display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid #086266;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:50;max-height:200px;overflow-y:auto;margin-top:3px;}
+.ac-list.open{display:block;}
+.ac-item{padding:10px 14px;font-size:14px;color:#1a1a1a;cursor:pointer;border-bottom:1px solid #f0faf9;}
+.ac-item:last-child{border-bottom:none;}
+.ac-item:hover,.ac-item.active{background:#e8f5f4;color:#086266;}
+.ac-item em{color:#086266;font-style:normal;font-weight:700;}
+.nav-tabs{display:flex;margin-bottom:20px;background:rgba(255,255,255,.15);border-radius:12px;padding:4px;}
+.nav-tab{flex:1;padding:9px 0;border-radius:9px;font-size:13px;font-weight:500;border:none;background:transparent;color:rgba(255,255,255,.75);cursor:pointer;font-family:inherit;transition:all .2s;}
+.nav-tab.active{background:#fff;color:#086266;font-weight:700;}
+.page{display:none;}
+.page.active{display:block;}
+</style>
+</head>
+<body>
+<div class="header"><h1>&#127857; 오늘의 메뉴 관리</h1></div>
+<div class="date-picker-wrap">
+  <button class="date-nav-btn" onclick="moveDate(-1)">&#8249;</button>
+  <button class="date-display-btn" id="dateDisplayBtn" onclick="openCal()">날짜 선택</button>
+  <button class="date-nav-btn" onclick="moveDate(1)">&#8250;</button>
+  <button class="date-today-btn" onclick="goToday()">오늘</button>
+</div>
+<div class="cal-overlay" id="calOverlay" onclick="closeCal(event)">
+  <div class="cal-popup" onclick="event.stopPropagation()">
+    <div class="cal-header">
+      <button class="cal-nav" onclick="calMove(-1)">&#8249;</button>
+      <span id="calTitle"></span>
+      <button class="cal-nav" onclick="calMove(1)">&#8250;</button>
+    </div>
+    <div class="cal-dow"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+    <div class="cal-grid" id="calGrid"></div>
+    <button class="cal-close" onclick="closeCal()">닫기</button>
+  </div>
+</div>
+<div class="img-overlay" id="imgOverlay" onclick="closeImgPopup(event)">
+  <div class="img-popup" onclick="event.stopPropagation()">
+    <div class="img-popup-title" id="imgPopupTitle">이미지 관리</div>
+    <div class="img-preview-wrap" id="imgPreviewWrap"><div class="img-placeholder"><span>&#128444;</span>이미지 없음</div></div>
+    <div class="img-status" id="imgStatus"></div>
+    <input type="file" id="imgFileInput" accept="image/*" style="display:none" onchange="onFileSelected(event)">
+    <div class="img-btn-row">
+      <button class="img-btn-upload" id="imgUploadBtn" onclick="document.getElementById('imgFileInput').click()">&#128193; 사진 선택</button>
+      <button class="img-btn-delete" id="imgDeleteBtn" onclick="deleteImg()">삭제</button>
+    </div>
+    <button class="img-btn-cancel" onclick="closeImgPopup()">취소</button>
+  </div>
+</div>
+<div class="nav-tabs">
+  <button class="nav-tab active" onclick="switchPage('manage')">메뉴 관리</button>
+  <button class="nav-tab" onclick="switchPage('kakao')">카카오 발송</button>
+  <button class="nav-tab" onclick="switchPage('import')">가져오기</button>
+  <button class="nav-tab" onclick="switchPage('history')">히스토리</button>
+</div>
+<div id="page-manage" class="page active">
+  <div class="card"><div class="stats-grid" id="statsGrid"></div></div>
+  <div class="card">
+    <div class="card-title">메뉴 추가</div>
+    <div class="input-row">
+  <div class="menuname-wrap">
+    <input type="text" id="menuName" placeholder="메뉴명 입력" autocomplete="off"
+      oninput="onMenuNameInput()" onkeydown="onMenuNameKey(event)">
+    <div class="ac-list" id="acList"></div>
+  </div>
+</div>
+<div class="dup-warn" id="dupWarn">&#9888; 이미 오늘 목록에 있는 메뉴예요!</div>
+    <div class="input-row">
+      <input type="number" id="menuPrice" placeholder="금액 (천원)" min="1">
+      <input type="number" id="menuStock" placeholder="재고 (개)" min="0" value="0">
+    </div>
+    <div class="input-row" style="margin-bottom:12px;">
+      <select id="menuCat">
+        <option value="메인">메인</option><option value="반찬">반찬</option>
+        <option value="김치">김치</option><option value="밀키트">밀키트</option><option value="기타">기타</option>
+      </select>
+    </div>
+    <label class="child-toggle"><input type="checkbox" id="menuChild"> 어린이도 먹을 수 있는 메뉴</label>
+    <button class="btn btn-add" onclick="addMenu()">추 가</button>
+  </div>
+  <div class="card">
+    <div class="card-title">오늘의 메뉴 목록</div>
+    <div class="legend" id="catLegend"></div>
+    <div class="tabs" id="filterTabs"></div>
+    <div class="menu-list" id="menuList"></div>
+  </div>
+</div>
+<div id="page-kakao" class="page">
+  <div class="card">
+    <div class="card-title">카카오채널 발송 텍스트</div>
+    <div class="kakao-box">
+      <div class="kakao-header">메뉴 안내</div>
+      <div class="kakao-body" id="kakaoText">메뉴를 먼저 입력해주세요.</div>
+    </div>
+    <button class="copy-btn" id="copyBtn" onclick="copyKakao()">텍스트 복사하기</button>
+  </div>
+  <div class="card">
+    <div class="card-title">메뉴 저장</div>
+    <p style="font-size:13px;color:#666;margin-bottom:14px;">저장하면 히스토리에서 다시 불러볼 수 있어요.</p>
+    <button class="btn btn-add" onclick="saveToday()">히스토리에 저장</button>
+  </div>
+</div>
+<div id="page-import" class="page">
+  <div class="card">
+    <div class="card-title">카카오 텍스트 가져오기</div>
+    <p style="font-size:13px;color:#666;margin-bottom:12px;">카카오채널에서 보낸 텍스트를 붙여넣으면 자동 변환해드려요.</p>
+    <textarea class="paste-area" id="pasteArea" placeholder="예) 불낙전골밀키트 15&#10;한우육전 10&#10;(숫자는 금액, 천원 단위)"></textarea>
+    <button class="parse-btn" onclick="parseKakao()">메뉴 자동 인식하기</button>
+    <div class="parse-result" id="parseResult">
+      <div class="parse-result-title">인식된 메뉴 — 카테고리 확인 후 가져오세요</div>
+      <div id="parsedItems"></div>
+      <button class="import-btn" onclick="importParsed()">메뉴 관리로 가져오기</button>
+    </div>
+  </div>
+</div>
+<div id="page-history" class="page">
+  <div class="card">
+    <div class="card-title">과거 메뉴 기록</div>
+    <div id="historyList"></div>
+  </div>
+</div>
+<script>
+var IMGBB_KEY='b5a6e9481bb9cb4791108cf50761a459';
+var CAT_COLOR={'메인':'#1D9E75','반찬':'#378ADD','김치':'#D4537E','밀키트':'#E9A826','기타':'#888780'};
+var menus=[],filterCat='전체',workDate='',calViewYear,calViewMonth,imgTargetId=null,parsedMenus=[];
+
+// ── 메뉴명 사전 ──
+var DICT_KEY='menu_name_dict';
+function getDict(){return JSON.parse(localStorage.getItem(DICT_KEY)||'[]');}
+function saveToDict(names){
+  var dict=getDict();
+  names.forEach(function(n){n=n.trim();if(n&&dict.indexOf(n)<0)dict.push(n);});
+  dict.sort();
+  localStorage.setItem(DICT_KEY,JSON.stringify(dict));
+}
+var acIndex=-1;
+function renderDatalist(){renderAcList();}  // 하위호환 유지
+function renderAcList(){
+  var inp=document.getElementById('menuName');
+  var q=(inp.value||'').trim();
+  var list=document.getElementById('acList');
+  // 사전 + 현재 메뉴 목록 합치기
+  var dict=getDict();
+  menus.forEach(function(m){if(m.name&&dict.indexOf(m.name.trim())<0)dict.push(m.name.trim());});
+  dict.sort();
+  var filtered=q?dict.filter(function(n){return n.toLowerCase().indexOf(q.toLowerCase())>=0;}):dict;
+  if(!filtered.length){list.classList.remove('open');return;}
+  acIndex=-1;
+  list.innerHTML=filtered.map(function(n){
+    var hi=q?n.split(q).join('<em>'+q+'</em>'):n;
+    return '<div class="ac-item" data-val="'+n.replace(/"/g,'&quot;')+'" onmousedown="pickAc(this)">'+hi+'</div>';
+  }).join('');
+  list.classList.add('open');
+}
+function pickAc(el){
+  var val=el.getAttribute('data-val');
+  document.getElementById('menuName').value=val;
+  document.getElementById('acList').classList.remove('open');
+  acIndex=-1;
+  checkDup(val);
+  document.getElementById('menuPrice').focus();
+}
+function closeAcList(){document.getElementById('acList').classList.remove('open');acIndex=-1;}
+function checkDup(name){
+  var warn=document.getElementById('dupWarn');
+  var isDup=name&&menus.some(function(m){return m.name.trim()===name.trim();});
+  if(isDup)warn.classList.add('show');else warn.classList.remove('show');
+}
+function onMenuNameInput(){
+  var name=document.getElementById('menuName').value.trim();
+  checkDup(name);
+  renderAcList();
+}
+function onMenuNameKey(e){
+  var list=document.getElementById('acList');
+  var items=list.querySelectorAll('.ac-item');
+  if(!items.length)return;
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    acIndex=Math.min(acIndex+1,items.length-1);
+    items.forEach(function(el,i){el.classList.toggle('active',i===acIndex);});
+  }else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    acIndex=Math.max(acIndex-1,0);
+    items.forEach(function(el,i){el.classList.toggle('active',i===acIndex);});
+  }else if(e.key==='Enter'&&acIndex>=0){
+    e.preventDefault();
+    pickAc(items[acIndex]);
+  }else if(e.key==='Escape'){
+    closeAcList();
+  }
+}
+
+function toISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function fmtDate(iso){var d=new Date(iso+'T00:00:00');var s=d.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'short'});return iso===toISO(new Date())?s+' (오늘)':s;}
+function menuKey(iso){return 'menus_'+iso;}
+function loadMenus(iso){var r=localStorage.getItem(menuKey(iso));menus=r?JSON.parse(r):[];}
+function saveMenus(iso){
+  localStorage.setItem(menuKey(iso),JSON.stringify(menus));
+  var h=JSON.parse(localStorage.getItem('menu_history')||'[]');
+  var idx=h.findIndex(function(x){return x.date===iso;});
+  var e={date:iso,menus:JSON.parse(JSON.stringify(menus))};
+  if(idx>=0)h[idx]=e;else h.unshift(e);
+  h.sort(function(a,b){return b.date.localeCompare(a.date);});
+  localStorage.setItem('menu_history',JSON.stringify(h));
+}
+function save(){saveMenus(workDate);}
+
+function selectDate(iso){
+  workDate=iso;
+  document.getElementById('dateDisplayBtn').textContent=fmtDate(iso);
+  loadMenus(iso);filterCat='전체';renderAll();renderHistory();
+  document.getElementById('calOverlay').classList.remove('open');
+}
+function moveDate(d){var dt=new Date(workDate+'T00:00:00');dt.setDate(dt.getDate()+d);selectDate(toISO(dt));}
+function goToday(){selectDate(toISO(new Date()));}
+
+function openCal(){var d=new Date(workDate+'T00:00:00');calViewYear=d.getFullYear();calViewMonth=d.getMonth();renderCal();document.getElementById('calOverlay').classList.add('open');}
+function closeCal(e){if(e&&e.target!==document.getElementById('calOverlay'))return;document.getElementById('calOverlay').classList.remove('open');}
+function calMove(d){calViewMonth+=d;if(calViewMonth<0){calViewMonth=11;calViewYear--;}if(calViewMonth>11){calViewMonth=0;calViewYear++;}renderCal();}
+function renderCal(){
+  var today=toISO(new Date());
+  var h=JSON.parse(localStorage.getItem('menu_history')||'[]');
+  var has={};h.forEach(function(x){has[x.date]=1;});
+  document.getElementById('calTitle').textContent=calViewYear+'년 '+(calViewMonth+1)+'월';
+  var start=new Date(calViewYear,calViewMonth,1).getDay();
+  var days=new Date(calViewYear,calViewMonth+1,0).getDate();
+  var cells='';
+  for(var i=0;i<start;i++){var pd=new Date(calViewYear,calViewMonth,i-start+1);var piso=toISO(pd);cells+='<div class="cal-day other-month'+(piso===workDate?' selected':'')+'" onclick="selectDate(\''+piso+'\')">'+pd.getDate()+'</div>';}
+  for(var dd=1;dd<=days;dd++){var iso=calViewYear+'-'+String(calViewMonth+1).padStart(2,'0')+'-'+String(dd).padStart(2,'0');var dow=new Date(calViewYear,calViewMonth,dd).getDay();var cls='cal-day';if(iso===today)cls+=' today';if(iso===workDate)cls+=' selected';if(has[iso])cls+=' has-data';if(dow===0)cls+=' sun';if(dow===6)cls+=' sat';cells+='<div class="'+cls+'" onclick="selectDate(\''+iso+'\')">'+dd+'</div>';}
+  document.getElementById('calGrid').innerHTML=cells;
+}
+
+function addMenu(){
+  var name=document.getElementById('menuName').value.trim();
+  var price=parseInt(document.getElementById('menuPrice').value)||0;
+  var stock=parseInt(document.getElementById('menuStock').value)||0;
+  var cat=document.getElementById('menuCat').value;
+  var child=document.getElementById('menuChild').checked;
+  if(!name){alert('메뉴명을 입력해주세요.');return;}
+  if(!price){alert('금액을 입력해주세요.');return;}
+  // 현재 목록 중복 확인
+  if(menus.some(function(m){return m.name.trim()===name;})){
+    if(!confirm('['+name+']이(가) 이미 목록에 있어요.\n그래도 추가할까요?'))return;
+  }
+  menus.push({id:Date.now(),name:name,price:price,stock:stock,cat:cat,child:child,imgUrl:null});
+  saveToDict([name]);
+  save();
+  document.getElementById('menuName').value='';
+  document.getElementById('menuPrice').value='';
+  document.getElementById('menuStock').value='0';
+  document.getElementById('menuChild').checked=false;
+  document.getElementById('dupWarn').classList.remove('show');
+  closeAcList();
+  renderAll();
+}
+function deleteMenu(id){if(!confirm('이 메뉴를 삭제할까요?'))return;menus=menus.filter(function(m){return m.id!==id;});save();renderAll();}
+function changeStock(id,d){var m=menus.find(function(x){return x.id===id;});if(!m)return;m.stock=Math.max(0,(m.stock||0)+d);save();renderMenuList();renderStats();}
+function startEditPrice(id){document.getElementById('pd_'+id).style.display='none';var inp=document.getElementById('pi_'+id);inp.style.display='inline-block';inp.focus();inp.select();}
+function commitPrice(id){var inp=document.getElementById('pi_'+id);var val=parseInt(inp.value)||0;var m=menus.find(function(x){return x.id===id;});if(m){m.price=val;save();}var disp=document.getElementById('pd_'+id);if(disp){disp.textContent=val.toLocaleString()+'천원';disp.style.display='';}inp.style.display='none';renderKakao();}
+function cancelPrice(id){var m=menus.find(function(x){return x.id===id;});var inp=document.getElementById('pi_'+id);var disp=document.getElementById('pd_'+id);if(inp&&m)inp.value=m.price||0;if(disp)disp.style.display='';if(inp)inp.style.display='none';}
+
+function openImgPopup(id){
+  imgTargetId=id;var m=menus.find(function(x){return x.id===id;});if(!m)return;
+  document.getElementById('imgPopupTitle').textContent=m.name+' - 이미지 관리';
+  document.getElementById('imgDeleteBtn').style.display=m.imgUrl?'':'none';
+  document.getElementById('imgStatus').style.display='none';
+  document.getElementById('imgFileInput').value='';
+  setImgPreview(m.imgUrl||'');
+  document.getElementById('imgOverlay').classList.add('open');
+}
+function closeImgPopup(e){if(e&&e.target!==document.getElementById('imgOverlay'))return;document.getElementById('imgOverlay').classList.remove('open');imgTargetId=null;}
+function setImgPreview(url){
+  var w=document.getElementById('imgPreviewWrap');
+  if(url){var img=document.createElement('img');img.src=url;img.alt='미리보기';img.onerror=function(){w.innerHTML='<div class="img-placeholder"><span>&#9888;</span>불러올 수 없어요</div>';};w.innerHTML='';w.appendChild(img);}
+  else{w.innerHTML='<div class="img-placeholder"><span>&#128444;</span>이미지 없음</div>';}
+}
+function setImgStatus(msg,loading){var el=document.getElementById('imgStatus');var btn=document.getElementById('imgUploadBtn');el.textContent=msg;el.style.display=msg?'block':'none';btn.disabled=loading;}
+function onFileSelected(e){
+  var file=e.target.files[0];if(!file)return;
+  setImgStatus('이미지 준비 중...',true);
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    var img=new Image();
+    img.onload=function(){
+      var MAX=600,w=img.width,h=img.height;
+      if(w>MAX||h>MAX){if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;}}
+      var c=document.createElement('canvas');c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      uploadToImgBB(c.toDataURL('image/jpeg',0.82).split(',')[1]);
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function uploadToImgBB(b64){
+  setImgStatus('업로드 중...',true);
+  var form=new FormData();
+  form.append('key',IMGBB_KEY);
+  form.append('image',b64);
+  var xhr=new XMLHttpRequest();
+  xhr.open('POST','https://api.imgbb.com/1/upload',true);
+  xhr.onload=function(){
+    if(xhr.status===200){
+      try{
+        var data=JSON.parse(xhr.responseText);
+        if(data.success){
+          var url=data.data.url;
+          var m=menus.find(function(x){return x.id===imgTargetId;});
+          if(m){m.imgUrl=url;save();renderMenuList();}
+          setImgPreview(url);
+          document.getElementById('imgDeleteBtn').style.display='';
+          setImgStatus('업로드 완료!',false);
+          setTimeout(function(){document.getElementById('imgOverlay').classList.remove('open');imgTargetId=null;},900);
+        }else{
+          var msg=data.error&&data.error.message?data.error.message:'알 수 없는 오류';
+          setImgStatus('업로드 실패: '+msg,false);
+        }
+      }catch(e){setImgStatus('응답 파싱 오류: '+e.message,false);}
+    }else{
+      setImgStatus('서버 오류 (HTTP '+xhr.status+')',false);
+    }
+  };
+  xhr.onerror=function(){setImgStatus('연결 실패 — 인터넷 연결을 확인해주세요.',false);};
+  xhr.ontimeout=function(){setImgStatus('업로드 시간 초과. 다시 시도해주세요.',false);};
+  xhr.timeout=30000;
+  xhr.send(form);
+}
+function deleteImg(){if(imgTargetId===null)return;if(!confirm('이미지를 삭제할까요?'))return;var m=menus.find(function(x){return x.id===imgTargetId;});if(m){m.imgUrl=null;save();renderMenuList();}document.getElementById('imgOverlay').classList.remove('open');imgTargetId=null;}
+
+function renderAll(){renderStats();renderFilterTabs();renderMenuList();renderKakao();}
+function renderStats(){
+  var t=menus.length,s=menus.reduce(function(a,m){return a+(m.stock||0);},0),c=menus.filter(function(m){return m.child;}).length;
+  document.getElementById('statsGrid').innerHTML='<div class="stat"><div class="stat-num">'+t+'</div><div class="stat-lbl">메뉴 수</div></div><div class="stat"><div class="stat-num">'+s+'</div><div class="stat-lbl">총 재고</div></div><div class="stat"><div class="stat-num">'+c+'</div><div class="stat-lbl">어린이 가능</div></div>';
+}
+function renderFilterTabs(){
+  var cats=['전체'];Object.keys(CAT_COLOR).forEach(function(c){if(menus.some(function(m){return m.cat===c;}))cats.push(c);});
+  document.getElementById('catLegend').innerHTML=Object.entries(CAT_COLOR).filter(function(e){return menus.some(function(m){return m.cat===e[0];});}).map(function(e){return '<div class="legend-item"><div class="legend-dot" style="background:'+e[1]+'"></div>'+e[0]+'</div>';}).join('');
+  document.getElementById('filterTabs').innerHTML=cats.map(function(c){return '<button class="tab'+(filterCat===c?' active':'')+'" onclick="setFilter(\''+c+'\')">'+c+'</button>';}).join('');
+}
+function setFilter(cat){filterCat=cat;renderFilterTabs();renderMenuList();}
+function renderMenuList(){
+  var list=document.getElementById('menuList');
+  var filtered=filterCat==='전체'?menus:menus.filter(function(m){return m.cat===filterCat;});
+  if(!filtered.length){list.innerHTML='<div class="empty">메뉴가 없어요. 위에서 추가해주세요.</div>';return;}
+  list.innerHTML=filtered.map(function(m){
+    var imgEl=m.imgUrl?'<img class="menu-thumb" src="'+m.imgUrl+'" alt="'+m.name+'" onclick="openImgPopup('+m.id+')" onerror="this.style.display=\'none\'">':'<button class="img-btn" title="이미지 등록" onclick="openImgPopup('+m.id+')">&#128247;</button>';
+    var chEl=m.child?' <span style="font-size:13px;">&#128103;</span>':'';
+    return '<div class="menu-item">'+
+      '<div class="cat-dot" style="background:'+(CAT_COLOR[m.cat]||'#888')+'"></div>'+imgEl+
+      '<div class="name">'+m.name+chEl+'</div>'+
+      '<div class="price-wrap"><span class="price-display" id="pd_'+m.id+'" onclick="startEditPrice('+m.id+')">'+(m.price||0).toLocaleString()+'천원</span><input class="price-input" id="pi_'+m.id+'" type="number" min="1" value="'+(m.price||0)+'" onblur="commitPrice('+m.id+')" onkeydown="if(event.key===\'Enter\')commitPrice('+m.id+');if(event.key===\'Escape\')cancelPrice('+m.id+');"></div>'+
+      '<div class="qty-ctrl"><button class="qty-btn" onclick="changeStock('+m.id+',-1)">-</button><span class="qty">'+(m.stock||0)+'</span><button class="qty-btn" onclick="changeStock('+m.id+',1)">+</button></div>'+
+      '<button class="del-btn" onclick="deleteMenu('+m.id+')">&#10005;</button>'+
+    '</div>';
+  }).join('');
+}
+function renderKakao(){
+  var el=document.getElementById('kakaoText');
+  if(!menus.length){el.textContent='메뉴를 먼저 입력해주세요.';return;}
+  var dl=new Date(workDate+'T00:00:00').toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
+  var cats=[...new Set(menus.map(function(m){return m.cat;}))];
+  var lines=[dl+' 메뉴 안내',''];
+  cats.forEach(function(cat){
+    lines.push('['+cat+']');
+    menus.filter(function(m){return m.cat===cat;}).forEach(function(m){lines.push(m.name+(m.child?'(어린이가능)':'')+' '+(m.price||0));});
+    lines.push('');
+  });
+  lines.push('메뉴 전체보기');lines.push('https://giths-ops.github.io/onban');
+  el.textContent=lines.join('\n').trim();
+}
+function copyKakao(){
+  navigator.clipboard.writeText(document.getElementById('kakaoText').textContent).then(function(){
+    var btn=document.getElementById('copyBtn');btn.textContent='복사 완료!';btn.classList.add('copied');
+    setTimeout(function(){btn.textContent='텍스트 복사하기';btn.classList.remove('copied');},2000);
+  });
+}
+function saveToday(){if(!menus.length){alert('저장할 메뉴가 없어요.');return;}saveMenus(workDate);alert(fmtDate(workDate)+'\n저장되었습니다!');renderHistory();}
+function renderHistory(){
+  var h=JSON.parse(localStorage.getItem('menu_history')||'[]');
+  var el=document.getElementById('historyList');
+  if(!h.length){el.innerHTML='<div class="empty">저장된 기록이 없어요.</div>';return;}
+  var today=toISO(new Date());
+  el.innerHTML=h.map(function(e,i){
+    var isToday=e.date===today,isCur=e.date===workDate;
+    var label=new Date(e.date+'T00:00:00').toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+    var st=e.menus.reduce(function(s,m){return s+(m.stock||0);},0);
+    var cn=e.menus.filter(function(m){return m.child;}).length;
+    var prev=e.menus.slice(0,5).map(function(m){return '<span class="tag-pill">'+m.name+'</span>';}).join('')+(e.menus.length>5?'<span class="tag-pill">+'+(e.menus.length-5)+'개</span>':'');
+    var border=isCur?'border:2px solid #086266;':'';
+    var badge=isCur?' <span style="font-size:10px;background:#086266;color:#fff;padding:1px 6px;border-radius:999px;">지금 작업중</span>':(isToday?' <span style="font-size:10px;background:#e8f5f4;color:#086266;padding:1px 6px;border-radius:999px;">오늘</span>':'');
+    return '<div class="history-item" style="'+border+'" onclick="loadHistory('+i+')"><div class="history-item-header"><div><div class="history-date">'+label+badge+'</div><div class="history-meta">메뉴 '+e.menus.length+'종 · 재고 '+st+'개 · 어린이 '+cn+'개</div></div><span class="arrow">&#8250;</span></div><div class="history-preview">'+prev+'</div></div>';
+  }).join('');
+}
+function loadHistory(i){var h=JSON.parse(localStorage.getItem('menu_history')||'[]');workDate=h[i].date;loadMenus(workDate);document.getElementById('dateDisplayBtn').textContent=fmtDate(workDate);filterCat='전체';renderAll();switchPage('manage');}
+function switchPage(name){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.nav-tab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('page-'+name).classList.add('active');
+  var tabs=['manage','kakao','import','history'];
+  document.querySelectorAll('.nav-tab')[tabs.indexOf(name)].classList.add('active');
+  if(name==='kakao')renderKakao();if(name==='history')renderHistory();
+}
+function guessCategory(name){if(/밀키트/.test(name))return '밀키트';if(/김치|깍두기|깻잎|열무|소박이|겉절이|쪽파/.test(name))return '김치';if(/국|탕|찌개|전골|찜|구이|볶음밥|덮밥|스테이크|육전|수육|갈비|삼겹|닭|오리|아구|조개/.test(name))return '메인';if(/조림|무침|볶음|샐러드|나물|장조림|스프|뭇국|미역국/.test(name))return '반찬';return '기타';}
+function parseKakao(){
+  var raw=document.getElementById('pasteArea').value.trim();if(!raw){alert('텍스트를 붙여넣어 주세요.');return;}
+  parsedMenus=[];
+  raw.split('\n').map(function(l){return l.trim();}).filter(function(l){return l;}).forEach(function(line){
+    if(/^[\[【].*[\]】]$/.test(line))return;
+    var m=line.match(/^(.+?)\s+(\d+)\s*$/);if(!m)return;
+    var rn=m[1].trim();var price=parseInt(m[2]);
+    var child=rn.indexOf('👧')>=0;var name=rn.replace(/👧/g,'').trim();
+    parsedMenus.push({name:name,price:price,stock:0,child:child,cat:guessCategory(name),imgUrl:null});
+  });
+  if(!parsedMenus.length){alert('인식된 메뉴가 없어요.\n형식: 메뉴명 금액');return;}
+
+  // ── 파싱 목록 내 중복 제거 (같은 이름이 두 번 이상 나온 경우) ──
+  var seen={};
+  parsedMenus=parsedMenus.filter(function(m){
+    var key=m.name.trim();
+    if(seen[key])return false;
+    seen[key]=true;return true;
+  });
+
+  document.getElementById('parsedItems').innerHTML=parsedMenus.map(function(m,i){
+    var opts=Object.keys(CAT_COLOR).map(function(c){return '<option value="'+c+'"'+(c===m.cat?' selected':'')+'>'+c+'</option>';}).join('');
+    return '<div class="parse-item"><span class="pi-name">'+m.name+(m.child?' 👧':'')+'</span><span class="pi-qty">'+m.price.toLocaleString()+'천원</span><select onchange="parsedMenus['+i+'].cat=this.value">'+opts+'</select></div>';
+  }).join('');
+  document.getElementById('parseResult').style.display='block';
+}
+function importParsed(){
+  if(!parsedMenus.length)return;
+  var add=menus.length>0?confirm('현재 목록에 추가할까요?\n확인=추가 / 취소=전체교체'):false;
+
+  var items, skipped=[];
+  if(add){
+    // 기존 메뉴 이름 목록
+    var existNames={};
+    menus.forEach(function(m){existNames[m.name.trim()]=true;});
+    // 중복이면 건너뜀
+    var newItems=[], dupItems=[];
+    parsedMenus.forEach(function(m){
+      if(existNames[m.name.trim()]){dupItems.push(m.name);}
+      else{newItems.push(Object.assign({},m,{id:Date.now()+Math.random()}));}
+    });
+    items=newItems; skipped=dupItems;
+    menus=menus.concat(items);
+  }else{
+    items=parsedMenus.map(function(m){return Object.assign({},m,{id:Date.now()+Math.random()});});
+    menus=items;
+  }
+
+  save();renderAll();
+  document.getElementById('pasteArea').value='';
+  document.getElementById('parseResult').style.display='none';
+  // 가져온 메뉴명 사전에 저장
+  saveToDict(items.map(function(m){return m.name;}));
+  renderDatalist();
+  parsedMenus=[];
+
+  // 결과 안내
+  var msg=items.length+'개 메뉴를 가져왔어요!';
+  if(skipped.length>0){msg+='\n\n중복 제외 ('+skipped.length+'개):\n'+skipped.join(', ');}
+  alert(msg);
+  switchPage('manage');
+}
+window.onload=function(){
+  workDate=toISO(new Date());loadMenus(workDate);
+  document.getElementById('dateDisplayBtn').textContent=fmtDate(workDate);
+  renderAll();renderHistory();
+  // 기존 모든 히스토리 메뉴명을 사전에 동기화 (최초 실행 대비)
+  (function(){
+    var h=JSON.parse(localStorage.getItem('menu_history')||'[]');
+    var names=[];
+    h.forEach(function(e){e.menus.forEach(function(m){if(m.name)names.push(m.name);});});
+    if(names.length)saveToDict(names);
+  })();
+  document.getElementById('menuName').addEventListener('focus',function(){onMenuNameInput();});
+  document.getElementById('menuName').addEventListener('blur',function(){setTimeout(closeAcList,150);});
+  document.addEventListener('click',function(e){if(!e.target.closest('.menuname-wrap'))closeAcList();});
+};
+</script>
+</body>
+</html>
