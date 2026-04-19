@@ -226,7 +226,7 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
 .btn-bank-primary.on{background:#086266;color:#fff;border-color:#086266;}
 .btn-add-bank{width:100%;border:1.5px dashed #cde8e7;background:#fff;border-radius:10px;padding:10px;font-size:13px;color:#086266;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px;}
 .btn-add-bank:hover{background:#f4fafa;}
-.bank-form{background:#e8f5f4;border-radius:10px;padding:14px;margin-top:8px;display:none;}
+.bank-form{background:#e8f5f4;border-radius:10px;padding:14px;margin-top:8px;display:none;overflow:hidden;box-sizing:border-box;}
 </style>
 </head>
 <body>
@@ -359,9 +359,9 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
         <span class="setting-label">계좌번호</span>
         <input class="setting-input" type="text" id="newBankAccount" placeholder="예) 110-123-456789">
       </div>
-      <div style="display:flex;gap:8px;margin-top:4px;">
-        <button class="btn-setting-save" style="flex:0 0 auto;" onclick="addBank()">추가</button>
-        <button class="btn-setting-save" style="flex:1;background:#aaa;" onclick="toggleBankForm()">취소</button>
+      <div style="display:flex;gap:8px;margin-top:4px;width:100%;box-sizing:border-box;">
+        <button class="btn-setting-save" style="flex:1;" onclick="addBank()">추가</button>
+        <button class="btn-setting-save" style="flex:0 0 64px;background:#aaa;" onclick="toggleBankForm()">취소</button>
       </div>
     </div>
     <div class="setting-saved" id="settingSaved2">✓ 저장되었습니다</div>
@@ -1164,18 +1164,45 @@ function exportMenuSheet(){
   btn.disabled=true; btn.textContent='전송 중...';
   res.style.display='none';
 
-  // CORS 우회: XMLHttpRequest no-cors 대신 숨김 form GET 방식
-  var encoded=encodeURIComponent(JSON.stringify(rows));
-  var url=gasUrl+'?action=export_menu&data='+encoded;
+  // 청크 분할 전송 (GET URL 길이 제한 우회)
+  var CHUNK=10;
+  var total=rows.length;
+  var chunks=[];
+  for(var i=0;i<rows.length;i+=CHUNK) chunks.push(rows.slice(i,i+CHUNK));
 
-  // 새 탭으로 GAS 직접 호출 (CORS 없음)
-  var win=window.open(url,'_blank');
-  btn.disabled=false; btn.textContent='📊 구글 시트로 내보내기';
-  res.style.display='block';
-  res.style.color='#1D9E75';
-  res.innerHTML='✅ '+rows.length+'개 전송 완료! 새 탭에서 결과를 확인하세요.<br>'
-    +'(처리 완료 후 새 탭은 닫으셔도 됩니다)';
-  showToast('구글 시트 내보내기 요청 완료!');
+  var idx=0;
+  function sendNext(){
+    if(idx>=chunks.length){
+      // 모든 청크 전송 완료 → 완료 신호
+      var doneUrl=gasUrl+'?action=export_menu&data='
+        +encodeURIComponent(JSON.stringify([]))+'&done=1&total='+total;
+      window.open(doneUrl,'_blank');
+      btn.disabled=false; btn.textContent='📊 구글 시트로 내보내기';
+      res.style.display='block'; res.style.color='#1D9E75';
+      res.innerHTML='✅ '+total+'개 항목 전송 완료!<br>'
+        +'<small>잠시 후 구글 시트를 확인하세요.</small>';
+      showToast('구글 시트 내보내기 완료!');
+      return;
+    }
+    var chunk=chunks[idx];
+    var isFirst=(idx===0)?'1':'0';
+    var url=gasUrl+'?action=export_menu'
+      +'&data='+encodeURIComponent(JSON.stringify(chunk))
+      +'&chunk='+idx
+      +'&total_chunks='+chunks.length
+      +'&first='+isFirst;
+    // 숨김 iframe으로 전송 (새 탭 없이)
+    var iframe=document.createElement('iframe');
+    iframe.style.display='none';
+    iframe.src=url;
+    iframe.onload=function(){
+      document.body.removeChild(iframe);
+      idx++;
+      setTimeout(sendNext, 800); // 청크 간 간격
+    };
+    document.body.appendChild(iframe);
+  }
+  sendNext();
 }
 
 
