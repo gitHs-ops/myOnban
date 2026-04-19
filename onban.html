@@ -385,7 +385,14 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--text
 <script>
 var CAT_COLOR={'메인':'#1D9E75','반찬':'#378ADD','김치':'#D4537E','밀키트':'#E9A826','기타':'#888780'};
 var CAT_EMOJI={'메인':'🍳','반찬':'🥗','김치':'🥬','밀키트':'📦','기타':'🍽'};
-var BANK={name:'국민은행',holder:'김현철',account:'118210210117'};
+var BANK=(function(){
+  var banks=JSON.parse(localStorage.getItem('onban_banks')||'null');
+  if(banks&&banks.length){
+    var p=banks.find(function(b){return b.primary;})||banks[0];
+    return {name:p.name,holder:p.holder,account:p.account};
+  }
+  return {name:'국민은행',holder:'김현철',account:'118210210117'};
+})();
 
 var allMenus=[];
 var filterCat='전체';
