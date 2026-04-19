@@ -135,6 +135,57 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
 .nav-tab.active{background:#fff;color:#086266;font-weight:700;}
 .page{display:none;}
 .page.active{display:block;}
+/* ── 주문 관리 ── */
+.order-card{
+  background:#fff;border-radius:14px;padding:16px;margin-bottom:12px;
+  box-shadow:0 2px 12px rgba(8,98,102,.08);
+  border-left:4px solid #cde8e7;
+}
+.order-card.pending{border-left-color:var(--amber,#E9A826);}
+.order-card.confirmed{border-left-color:#1D9E75;}
+.order-card.cancelled{border-left-color:#ccc;opacity:.6;}
+.order-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.order-name{font-size:16px;font-weight:700;color:#1a1a1a;}
+.order-time{font-size:12px;color:#888;margin-top:2px;}
+.order-status{
+  font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;flex-shrink:0;
+}
+.status-pending{background:#fff8e1;color:#b8860b;}
+.status-confirmed{background:#e8f8f2;color:#1D9E75;}
+.status-cancelled{background:#f0f0f0;color:#999;}
+.order-items{font-size:13px;color:#555;margin-bottom:10px;line-height:1.8;}
+.order-total{font-size:15px;font-weight:900;color:#086266;margin-bottom:12px;}
+.order-memo{font-size:12px;color:#b8860b;background:#fff8e1;padding:6px 10px;border-radius:6px;margin-bottom:10px;}
+.order-actions{display:flex;gap:8px;}
+.btn-confirm-order{
+  flex:1;background:#086266;color:#fff;border:none;border-radius:8px;
+  padding:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.btn-cancel-order{
+  background:#fff;color:#e05;border:1.5px solid #f5c0c0;border-radius:8px;
+  padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.btn-kakao-msg{
+  width:100%;background:#FEE500;color:#3A1D1D;border:none;border-radius:8px;
+  padding:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
+  margin-top:6px;
+}
+.order-empty{text-align:center;padding:40px 20px;color:#aaa;font-size:14px;}
+.order-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}
+.order-stat{background:#f0faf9;border-radius:10px;padding:12px 8px;text-align:center;}
+.order-stat-num{font-size:20px;font-weight:900;color:#086266;}
+.order-stat-lbl{font-size:11px;color:#666;margin-top:2px;}
+.kakao-preview-box{
+  background:#FEE500;border-radius:12px;padding:14px;margin-top:8px;
+  font-size:13px;color:#3A1D1D;font-family:monospace;line-height:1.9;
+  white-space:pre-wrap;display:none;
+}
+.order-filter-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.order-filter-tab{
+  padding:5px 14px;border-radius:999px;font-size:12px;font-weight:500;
+  border:1.5px solid #d6efee;background:#fff;color:#555;cursor:pointer;font-family:inherit;
+}
+.order-filter-tab.active{background:#086266;color:#fff;border-color:#086266;}
 </style>
 </head>
 <body>
@@ -170,16 +221,17 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
     <button class="img-btn-cancel" onclick="closeImgPopup()">취소</button>
   </div>
 </div>
-<div class="nav-tabs">
+<div class="nav-tabs" style="flex-wrap:wrap;gap:2px;">
   <button class="nav-tab active" onclick="switchPage('manage')">메뉴 관리</button>
   <button class="nav-tab" onclick="switchPage('kakao')">카카오 발송</button>
   <button class="nav-tab" onclick="switchPage('import')">가져오기</button>
-  <button class="nav-tab" onclick="switchPage('history')">히스토리</button>
+  <button class="nav-tab" onclick="switchPage('orders')">📦 주문 관리</button>
+  <button class="nav-tab" onclick="switchPage('history')">메뉴 창고</button>
 </div>
 <div id="page-manage" class="page active">
   <div class="card"><div class="stats-grid" id="statsGrid"></div></div>
   <div class="card">
-    <div class="card-title">메뉴 추가</div>
+    <div class="card-title">일일 메뉴 등록</div>
     <div class="input-row">
   <div class="menuname-wrap">
     <input type="text" id="menuName" placeholder="메뉴명 입력" autocomplete="off"
@@ -218,9 +270,9 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
     <button class="copy-btn" id="copyBtn" onclick="copyKakao()">텍스트 복사하기</button>
   </div>
   <div class="card">
-    <div class="card-title">메뉴 저장</div>
-    <p style="font-size:13px;color:#666;margin-bottom:14px;">저장하면 히스토리에서 다시 불러볼 수 있어요.</p>
-    <button class="btn btn-add" onclick="saveToday()">히스토리에 저장</button>
+    <div class="card-title">메뉴 창고 저장</div>
+    <p style="font-size:13px;color:#666;margin-bottom:14px;">저장하면 메뉴 창고에서 다시 불러볼 수 있어요.</p>
+    <button class="btn btn-add" onclick="saveToday()">메뉴 창고에 저장</button>
   </div>
 </div>
 <div id="page-import" class="page">
@@ -236,9 +288,18 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
     </div>
   </div>
 </div>
+<div id="page-orders" class="page">
+  <div class="card">
+    <div class="card-title">📦 주문 관리</div>
+    <div class="order-stats" id="orderStats"></div>
+    <div class="order-filter-tabs" id="orderFilterTabs"></div>
+    <div id="orderList"></div>
+  </div>
+</div>
+
 <div id="page-history" class="page">
   <div class="card">
-    <div class="card-title">과거 메뉴 기록</div>
+    <div class="card-title">메뉴 창고</div>
     <div id="historyList"></div>
   </div>
 </div>
@@ -498,7 +559,7 @@ function copyKakao(){
     setTimeout(function(){btn.textContent='텍스트 복사하기';btn.classList.remove('copied');},2000);
   });
 }
-function saveToday(){if(!menus.length){alert('저장할 메뉴가 없어요.');return;}saveMenus(workDate);alert(fmtDate(workDate)+'\n저장되었습니다!');renderHistory();}
+function saveToday(){if(!menus.length){alert('저장할 메뉴가 없어요.');return;}saveMenus(workDate);alert(fmtDate(workDate)+'\n메뉴 창고에 저장되었습니다!');renderHistory();}
 function renderHistory(){
   var h=JSON.parse(localStorage.getItem('menu_history')||'[]');
   var el=document.getElementById('historyList');
@@ -587,6 +648,180 @@ function importParsed(){
   alert(msg);
   switchPage('manage');
 }
+/* ════ 주문 관리 ════ */
+var orderFilter='all';
+
+function getOrders(){return JSON.parse(localStorage.getItem('orders')||'[]');}
+function saveOrders(orders){localStorage.setItem('orders',JSON.stringify(orders));}
+
+function renderOrders(){
+  var all=getOrders();
+  // 오늘 날짜 필터
+  var today=toISO(new Date());
+  var todayOrders=all.filter(function(o){return o.date===today;});
+
+  // 통계
+  var pending=todayOrders.filter(function(o){return o.status==='pending';}).length;
+  var confirmed=todayOrders.filter(function(o){return o.status==='confirmed';}).length;
+  var cancelled=todayOrders.filter(function(o){return o.status==='cancelled';}).length;
+  document.getElementById('orderStats').innerHTML=
+    '<div class="order-stat"><div class="order-stat-num">'+todayOrders.length+'</div><div class="order-stat-lbl">전체</div></div>'+
+    '<div class="order-stat"><div class="order-stat-num" style="color:#E9A826;">'+pending+'</div><div class="order-stat-lbl">대기중</div></div>'+
+    '<div class="order-stat"><div class="order-stat-num" style="color:#1D9E75;">'+confirmed+'</div><div class="order-stat-lbl">확정</div></div>';
+
+  // 필터 탭
+  var filterLabels=[['all','전체'],['pending','대기중'],['confirmed','확정'],['cancelled','취소']];
+  document.getElementById('orderFilterTabs').innerHTML=filterLabels.map(function(f){
+    return '<button class="order-filter-tab'+(orderFilter===f[0]?' active':'')+'" data-f="'+f[0]+'">'+f[1]+'</button>';
+  }).join('');
+  document.querySelectorAll('.order-filter-tab').forEach(function(btn){
+    btn.onclick=function(){setOrderFilter(this.getAttribute('data-f'));};
+  });
+
+  // 목록
+  var filtered=orderFilter==='all'?todayOrders:todayOrders.filter(function(o){return o.status===orderFilter;});
+  var el=document.getElementById('orderList');
+  if(!filtered.length){
+    el.innerHTML='<div class="order-empty">📭 '+( orderFilter==='all'?'오늘 접수된 주문이 없어요.':'해당 주문이 없어요.')+'</div>';
+    return;
+  }
+  el.innerHTML='';
+  filtered.forEach(function(order){
+    var card=document.createElement('div');
+    card.className='order-card '+order.status;
+    card.id='ocard_'+order.id;
+
+    var statusText={'pending':'⏳ 대기중','confirmed':'✅ 확정','cancelled':'❌ 취소'};
+    var statusClass={'pending':'status-pending','confirmed':'status-confirmed','cancelled':'status-cancelled'};
+
+    var header=document.createElement('div');
+    header.className='order-header';
+    header.innerHTML='<div><div class="order-name">👤 '+order.name+(order.phone?' · '+order.phone:'')+'</div>'+
+      '<div class="order-time">'+order.time+'</div></div>'+
+      '<span class="order-status '+statusClass[order.status]+'">'+statusText[order.status]+'</span>';
+    card.appendChild(header);
+
+    var items=document.createElement('div');
+    items.className='order-items';
+    items.textContent=order.items.map(function(i){return i.name+' '+i.qty+'개';}).join(' · ');
+    card.appendChild(items);
+
+    var total=document.createElement('div');
+    total.className='order-total';
+    total.textContent='합계 '+order.total.toLocaleString()+'천원';
+    card.appendChild(total);
+
+    if(order.memo){
+      var memo=document.createElement('div');
+      memo.className='order-memo';
+      memo.textContent='📝 '+order.memo;
+      card.appendChild(memo);
+    }
+
+    // 카카오 확정 문구 미리보기
+    var kakaoBox=document.createElement('div');
+    kakaoBox.className='kakao-preview-box';
+    kakaoBox.id='kakao_'+order.id;
+    kakaoBox.textContent=makeConfirmMsg(order);
+    card.appendChild(kakaoBox);
+
+    if(order.status==='pending'){
+      var actions=document.createElement('div');
+      actions.className='order-actions';
+
+      var btnCfm=document.createElement('button');
+      btnCfm.className='btn-confirm-order';
+      btnCfm.textContent='✅ 주문 확정';
+      btnCfm.onclick=function(){confirmOrder(order.id);};
+
+      var btnCnl=document.createElement('button');
+      btnCnl.className='btn-cancel-order';
+      btnCnl.textContent='취소';
+      btnCnl.onclick=function(){cancelOrder(order.id);};
+
+      actions.appendChild(btnCfm);
+      actions.appendChild(btnCnl);
+      card.appendChild(actions);
+    }
+
+    if(order.status==='confirmed'){
+      var btnMsg=document.createElement('button');
+      btnMsg.className='btn-kakao-msg';
+      btnMsg.textContent='💛 카카오 확정 문구 복사';
+      btnMsg.onclick=function(){copyConfirmMsg(order.id);};
+      card.appendChild(btnMsg);
+    }
+
+    el.appendChild(card);
+  });
+}
+
+function setOrderFilter(f){orderFilter=f;renderOrders();}
+
+function makeConfirmMsg(order){
+  var lines=['[오늘의 반찬] '+order.name+'님, 주문이 확정됐습니다! 🎉',''];
+  order.items.forEach(function(i){lines.push('  '+i.name+' '+i.qty+'개');});
+  lines.push('');
+  lines.push('합계: '+order.total.toLocaleString()+'천원');
+  lines.push('');
+  lines.push('입금 확인 완료! 감사합니다 😊');
+  return lines.join('\n');
+}
+
+function confirmOrder(id){
+  var orders=getOrders();
+  var o=orders.find(function(o){return o.id===id;});
+  if(!o)return;
+  o.status='confirmed';
+  saveOrders(orders);
+  showKakaoBox(id);
+  copyConfirmMsg(id);
+  renderOrders();
+}
+
+function showKakaoBox(id){
+  var box=document.getElementById('kakao_'+id);
+  if(box)box.style.display='block';
+}
+
+function cancelOrder(id){
+  if(!confirm('이 주문을 취소할까요?'))return;
+  var orders=getOrders();
+  var o=orders.find(function(o){return o.id===id;});
+  if(!o)return;
+  o.status='cancelled';
+  saveOrders(orders);
+  renderOrders();
+}
+
+function copyConfirmMsg(id){
+  var orders=getOrders();
+  var o=orders.find(function(o){return o.id===id;});
+  if(!o)return;
+  var msg=makeConfirmMsg(o);
+  navigator.clipboard.writeText(msg).then(function(){
+    showToast(o.name+'님 확정 문구 복사됐어요! 카카오에 붙여넣기 하세요.');
+  });
+}
+
+function showToast(msg){
+  var existing=document.getElementById('mgr-toast');
+  if(!existing){
+    existing=document.createElement('div');
+    existing.id='mgr-toast';
+    existing.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:999px;font-size:13px;opacity:0;transition:all .3s;z-index:999;white-space:nowrap;';
+    document.body.appendChild(existing);
+  }
+  existing.textContent=msg;
+  existing.style.opacity='1';
+  existing.style.transform='translateX(-50%) translateY(0)';
+  clearTimeout(existing._t);
+  existing._t=setTimeout(function(){
+    existing.style.opacity='0';
+    existing.style.transform='translateX(-50%) translateY(20px)';
+  },2500);
+}
+
 window.onload=function(){
   workDate=toISO(new Date());loadMenus(workDate);
   document.getElementById('dateDisplayBtn').textContent=fmtDate(workDate);
