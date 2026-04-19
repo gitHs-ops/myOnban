@@ -363,6 +363,7 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--text
     <div class="orderer-title">📝 주문자 정보 입력</div>
     <input class="orderer-input" id="ordererName" type="text" placeholder="이름을 입력해주세요 *" maxlength="20">
     <input class="orderer-input" id="ordererPhone" type="tel" placeholder="연락처 (선택)" maxlength="20">
+    <input class="orderer-input" id="ordererAddr" type="text" placeholder="배송 주소 (선택)" maxlength="100">
     <input class="orderer-input" id="ordererMemo" type="text" placeholder="요청사항 (선택)" maxlength="50">
   </div>
   <div id="ordererOrderContent"></div>
@@ -400,7 +401,7 @@ var cart=[];
 var detailMenu=null;
 var detailQty=1;
 var orderItems=[];
-var ordererInfo={name:'',phone:'',memo:''};
+var ordererInfo={name:'',phone:'',addr:'',memo:''};
 
 function toISO(d){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -767,6 +768,7 @@ function renderOrdererPage(){
     ordererInfo={
       name:name,
       phone:document.getElementById('ordererPhone').value.trim(),
+      addr:document.getElementById('ordererAddr').value.trim(),
       memo:document.getElementById('ordererMemo').value.trim()
     };
     saveOrder();
@@ -793,6 +795,7 @@ function saveOrder(){
     time:new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}),
     name:ordererInfo.name,
     phone:ordererInfo.phone,
+    addr:ordererInfo.addr,
     memo:ordererInfo.memo,
     items:orderItems.map(function(c){return {name:c.name,qty:c.qty,price:c.price};}),
     total:total,

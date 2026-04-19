@@ -130,9 +130,29 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
 .ac-item:last-child{border-bottom:none;}
 .ac-item:hover,.ac-item.active{background:#e8f5f4;color:#086266;}
 .ac-item em{color:#086266;font-style:normal;font-weight:700;}
-.nav-tabs{display:flex;margin-bottom:20px;background:rgba(255,255,255,.15);border-radius:12px;padding:4px;}
-.nav-tab{flex:1;padding:9px 0;border-radius:9px;font-size:13px;font-weight:500;border:none;background:transparent;color:rgba(255,255,255,.75);cursor:pointer;font-family:inherit;transition:all .2s;}
+.nav-tabs{display:flex;margin-bottom:20px;background:rgba(255,255,255,.15);border-radius:12px;padding:4px;gap:2px;}
+.nav-tab{
+  flex:1;padding:9px 4px;border-radius:9px;font-size:13px;font-weight:500;
+  border:none;background:transparent;color:rgba(255,255,255,.75);
+  cursor:pointer;font-family:inherit;transition:all .2s;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  position:relative;
+}
 .nav-tab.active{background:#fff;color:#086266;font-weight:700;}
+.nav-tab .ti{font-size:18px;line-height:1;}
+.nav-tab .tl{font-size:11px;line-height:1;}
+/* 모바일: 라벨 숨기고 아이콘만 */
+@media(max-width:600px){
+  .nav-tab .tl{display:none;}
+  .nav-tab{padding:10px 2px;}
+  .nav-tab .ti{font-size:20px;}
+  .nav-tab:hover .tl,.nav-tab:focus .tl{
+    display:block;position:absolute;bottom:-26px;left:50%;
+    transform:translateX(-50%);background:rgba(0,0,0,.75);
+    color:#fff;font-size:10px;padding:3px 7px;border-radius:5px;
+    white-space:nowrap;z-index:99;pointer-events:none;
+  }
+}
 .page{display:none;}
 .page.active{display:block;}
 /* ── 주문 관리 ── */
@@ -242,13 +262,13 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
     <button class="img-btn-cancel" onclick="closeImgPopup()">취소</button>
   </div>
 </div>
-<div class="nav-tabs" style="flex-wrap:wrap;gap:2px;">
-  <button class="nav-tab active" onclick="switchPage('manage')">메뉴 관리</button>
-  <button class="nav-tab" onclick="switchPage('kakao')">카카오 발송</button>
-  <button class="nav-tab" onclick="switchPage('import')">가져오기</button>
-  <button class="nav-tab" onclick="switchPage('orders')">📦 주문 관리</button>
-  <button class="nav-tab" onclick="switchPage('history')">메뉴 창고</button>
-  <button class="nav-tab" onclick="switchPage('settings')">⚙ 설정</button>
+<div class="nav-tabs">
+  <button class="nav-tab active" onclick="switchPage('manage')"><span class="ti">🍱</span><span class="tl">메뉴 관리</span></button>
+  <button class="nav-tab" onclick="switchPage('kakao')"><span class="ti">💬</span><span class="tl">카카오 발송</span></button>
+  <button class="nav-tab" onclick="switchPage('import')"><span class="ti">📥</span><span class="tl">가져오기</span></button>
+  <button class="nav-tab" onclick="switchPage('orders')"><span class="ti">📦</span><span class="tl">주문 관리</span></button>
+  <button class="nav-tab" onclick="switchPage('history')"><span class="ti">🗄</span><span class="tl">메뉴 창고</span></button>
+  <button class="nav-tab" onclick="switchPage('settings')"><span class="ti">⚙</span><span class="tl">설정</span></button>
 </div>
 <div id="page-manage" class="page active">
   <div class="card"><div class="stats-grid" id="statsGrid"></div></div>
@@ -360,8 +380,25 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
       <span class="setting-label">GAS URL</span>
       <input class="setting-input" type="text" id="cfgGasUrl" placeholder="SMS 발송용 GAS 주소">
     </div>
+    <div class="setting-row">
+      <span class="setting-label">배송업체</span>
+      <input class="setting-input" type="tel" id="cfgDeliveryPhone" placeholder="예) 010-0000-0000">
+    </div>
     <button class="btn-setting-save" onclick="saveAdminInfo()">저장</button>
     <div class="setting-saved" id="settingSaved3">✓ 저장되었습니다</div>
+  </div>
+  <div class="setting-card">
+    <div class="setting-title">📂 메뉴 창고 내보내기</div>
+    <p style="font-size:12px;color:#aaa;margin-bottom:14px;">저장된 모든 날짜의 메뉴 데이터를 CSV 파일로 내보냅니다.</p>
+    <div class="setting-row" style="margin-bottom:10px;">
+      <span class="setting-label">기간 시작</span>
+      <input class="setting-input" type="date" id="csvFrom">
+    </div>
+    <div class="setting-row" style="margin-bottom:14px;">
+      <span class="setting-label">기간 종료</span>
+      <input class="setting-input" type="date" id="csvTo">
+    </div>
+    <button class="btn-setting-save" onclick="exportMenuCSV()">📥 CSV 다운로드</button>
   </div>
 </div>
 
@@ -812,7 +849,7 @@ function renderOrders(){
 
       var btnCfm=document.createElement('button');
       btnCfm.className='btn-confirm-order';
-      btnCfm.textContent='✅ 주문 확정';
+      btnCfm.textContent='🚚 배송 확정';
       btnCfm.onclick=function(){confirmOrder(order.id);};
 
       var btnCnl=document.createElement('button');
@@ -828,7 +865,7 @@ function renderOrders(){
     if(order.status==='confirmed'){
       var btnMsg=document.createElement('button');
       btnMsg.className='btn-kakao-msg';
-      btnMsg.textContent='💛 카카오 확정 문구 복사';
+      btnMsg.textContent='💛 카카오 배송 확정 문구 복사';
       btnMsg.onclick=function(){copyConfirmMsg(order.id);};
       card.appendChild(btnMsg);
     }
@@ -840,7 +877,7 @@ function renderOrders(){
 function setOrderFilter(f){orderFilter=f;renderOrders();}
 
 function makeConfirmMsg(order){
-  var lines=['[오늘의 반찬] '+order.name+'님, 주문이 확정됐습니다! 🎉',''];
+  var lines=['[오늘의 반찬] '+order.name+'님, 배송이 확정됐습니다! 🚚',''];
   order.items.forEach(function(i){lines.push('  '+i.name+' '+i.qty+'개');});
   lines.push('');
   lines.push('합계: '+order.total.toLocaleString()+'천원');
@@ -871,11 +908,35 @@ function confirmOrder(id){
   saveOrders(orders);
   showKakaoBox(id);
   copyConfirmMsg(id);
-  // SMS 발송
-  var msg=makeConfirmMsg(o);
+  // 재고 차감
+  var dayMenus=JSON.parse(localStorage.getItem('menus_'+o.date)||'[]');
+  if(dayMenus.length){
+    o.items.forEach(function(item){
+      var m=dayMenus.find(function(m){return m.name===item.name;});
+      if(m)m.stock=Math.max(0,(m.stock||0)-item.qty);
+    });
+    localStorage.setItem('menus_'+o.date,JSON.stringify(dayMenus));
+    // 현재 작업중인 날짜면 화면도 갱신
+    if(workDate===o.date){loadMenus(workDate);renderAll();}
+  }
+  // 고객에게 배송 확정 문자
+  if(o.phone){
+    var custMsg='[오늘의 반찬] '+o.name+'님, 배송이 확정됐습니다! '
+      +o.items.map(function(i){return i.name+' '+i.qty+'개';}).join(', ')
+      +' 합계: '+o.total.toLocaleString()+'천원. 감사합니다 😊';
+    sendSMS(o.phone, custMsg);
+  }
+  // 배송업체에 배송 정보 문자
   var admin=getAdminInfo();
-  if(o.phone)sendSMS(o.phone, msg);
-  if(admin.phone)sendSMS(admin.phone, '[주문확정] '+o.name+'님 '+o.total.toLocaleString()+'천원 주문 확정');
+  if(admin.deliveryPhone){
+    var delivMsg='[오늘의 반찬] 배송 요청'
+      +' / '+o.name
+      +(o.phone?' '+o.phone:'')
+      +(o.addr?' / '+o.addr:'')
+      +' / '+o.items.map(function(i){return i.name+' '+i.qty+'개';}).join(', ')
+      +(o.memo?' / 요청:'+o.memo:'');
+    sendSMS(admin.deliveryPhone, delivMsg);
+  }
   renderOrders();
 }
 
@@ -891,7 +952,16 @@ function cancelOrder(id){
   if(!o)return;
   o.status='cancelled';
   saveOrders(orders);
-  if(o.phone)sendSMS(o.phone,'[오늘의 반찬] '+o.name+'님, 주문이 취소됐습니다. 문의사항은 카카오채널로 연락주세요.');
+  if(o.phone){
+    var primary=getPrimaryBank();
+    var cancelMsg='[오늘의 반찬] '+o.name+'님, 주문이 취소됐습니다.'
+      +' 환불 방법을 선택해 주세요.'
+      +' ① 계좌이체 환불: 환불받으실 계좌번호를 카카오채널로 알려주세요.'
+      +(primary.account?' (입금계좌: '+primary.name+' '+primary.holder+' '+primary.account+')':'')
+      +' ② 쿠폰 포인트 적립: 다음 주문 시 사용 가능한 포인트로 적립해 드립니다.'
+      +' 원하시는 방법을 카카오채널로 알려주세요.';
+    sendSMS(o.phone, cancelMsg);
+  }
   renderOrders();
 }
 
@@ -933,14 +1003,15 @@ function getSettings(){
   return Object.assign(def,JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}'));
 }
 function getAdminInfo(){
-  var def={phone:'010-2698-9056',email:'',gasUrl:'https://script.google.com/macros/s/AKfycbzOmKHKIIQGCUFinZxvOZw0hGAWLZlP54PNefQTRSkrm5ShRpgEYo2XO7oHy8zbZIrvOw/exec'};
+  var def={phone:'010-2698-9056',email:'',gasUrl:'https://script.google.com/macros/s/AKfycbzOmKHKIIQGCUFinZxvOZw0hGAWLZlP54PNefQTRSkrm5ShRpgEYo2XO7oHy8zbZIrvOw/exec',deliveryPhone:''};
   return Object.assign(def,JSON.parse(localStorage.getItem(ADMIN_KEY)||'{}'));
 }
 function saveAdminInfo(){
   var s={
     phone:document.getElementById('cfgAdminPhone').value.trim(),
     email:document.getElementById('cfgAdminEmail').value.trim(),
-    gasUrl:document.getElementById('cfgGasUrl').value.trim()
+    gasUrl:document.getElementById('cfgGasUrl').value.trim(),
+    deliveryPhone:document.getElementById('cfgDeliveryPhone').value.trim()
   };
   localStorage.setItem(ADMIN_KEY,JSON.stringify(s));
   var el=document.getElementById('settingSaved3');
@@ -1041,13 +1112,75 @@ function renderBankList(){
 }
 
 function loadSettingsForm(){
+  // CSV 날짜 기본값: 이번달 1일 ~ 오늘
+  var today=toISO(new Date());
+  var firstDay=today.substring(0,7)+'-01';
+  document.getElementById('csvFrom').value=firstDay;
+  document.getElementById('csvTo').value=today;
   var s=getSettings();
   document.getElementById('cfgStock').value=s.stock;
   var a=getAdminInfo();
   document.getElementById('cfgAdminPhone').value=a.phone;
   document.getElementById('cfgAdminEmail').value=a.email;
   document.getElementById('cfgGasUrl').value=a.gasUrl;
+  document.getElementById('cfgDeliveryPhone').value=a.deliveryPhone||'';
   renderBankList();
+}
+
+/* ════ CSV 내보내기 ════ */
+function exportMenuCSV(){
+  var from=document.getElementById('csvFrom').value;
+  var to=document.getElementById('csvTo').value;
+
+  // localStorage에서 menus_ 키 전체 수집
+  var keys=[];
+  for(var i=0;i<localStorage.length;i++){
+    var k=localStorage.key(i);
+    if(k&&k.indexOf('menus_')===0){
+      var d=k.replace('menus_','');
+      if(/^\d{4}-\d{2}-\d{2}$/.test(d)){
+        if((!from||d>=from)&&(!to||d<=to))keys.push(d);
+      }
+    }
+  }
+  if(!keys.length){showToast('내보낼 데이터가 없어요.');return;}
+  keys.sort();
+
+  var rows=[['날짜','메뉴명','카테고리','금액(천원)','재고','어린이가능','이미지URL']];
+  keys.forEach(function(d){
+    var menus=JSON.parse(localStorage.getItem('menus_'+d)||'[]');
+    menus.forEach(function(m){
+      rows.push([
+        d,
+        m.name||'',
+        m.cat||'',
+        m.price||0,
+        m.stock||0,
+        m.child?'Y':'N',
+        m.imgUrl||''
+      ]);
+    });
+  });
+
+  // BOM + CSV 생성
+  var bom='﻿';
+  var csv=bom+rows.map(function(r){
+    return r.map(function(c){
+      var s=String(c);
+      if(s.indexOf(',')>=0||s.indexOf('"')>=0||s.indexOf('\n')>=0)
+        s='"'+s.replace(/"/g,'""')+'"';
+      return s;
+    }).join(',');
+  }).join('\n');
+
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  a.download='onban_menu_'+toISO(new Date())+'.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(keys.length+'개 날짜 데이터를 내보냈어요!');
 }
 
 window.onload=function(){
