@@ -1163,41 +1163,30 @@ function collectMenuData(from,to){
 
 function exportMenuSheet(){
   var from=document.getElementById('csvFrom').value;
-  var to=from; // 하루치만 전송
+  if(!from){showToast('날짜를 선택해주세요.');return;}
   var gasUrl=ONBAN_SHEET_URL||document.getElementById('cfgExportUrl').value.trim()||getAdminInfo().gasUrl;
   if(!gasUrl){showToast('GAS URL을 설정해주세요.');return;}
-  var rows=collectMenuData(from,to);
-  if(!rows.length){showToast('내보낼 데이터가 없어요.');return;}
+
+  // 하루치만 수집
+  var rows=collectMenuData(from,from);
+  if(!rows.length){showToast(from+' 날짜의 데이터가 없어요.');return;}
 
   var btn=document.getElementById('btnExport');
   var res=document.getElementById('exportResult');
-  btn.disabled=true; btn.textContent='전송 중...';
-  res.style.display='none';
 
-  // 청크 분할 전송 (GET URL 길이 제한 우회)
-  var CHUNK=10;
-  var total=rows.length;
-  var chunks=[];
-  for(var i=0;i<rows.length;i+=CHUNK) chunks.push(rows.slice(i,i+CHUNK));
-
-  var idx=0;
-  // 숨김 iframe으로 전송 (새 탭 없이, CORS 우회)
+  // slim 배열 변환
   var slim=rows.map(function(m){
     return [m.date,m.name,m.cat,m.price,m.stock,m.child?1:0];
   });
   var url=gasUrl+'?action=export_menu&data='+encodeURIComponent(JSON.stringify(slim));
-  var iframe=document.createElement('iframe');
-  iframe.style.display='none';
-  iframe.src=url;
-  iframe.onload=function(){
-    document.body.removeChild(iframe);
-    btn.disabled=false; btn.textContent='📊 구글 시트로 내보내기';
-    res.style.display='block'; res.style.color='#1D9E75';
-    res.innerHTML='✅ '+total+'개 내보내기 완료!<br>'
-      +'<small>구글 시트에서 확인하세요.</small>';
-    showToast('구글 시트 내보내기 완료!');
-  };
-  document.body.appendChild(iframe);
+
+  // window.open 새 탭 방식 (GitHub Pages CORS 우회 유일한 방법)
+  window.open(url,'_blank');
+  btn.disabled=false; btn.textContent='📊 구글 시트로 내보내기';
+  res.style.display='block'; res.style.color='#1D9E75';
+  res.innerHTML='✅ '+rows.length+'개 전송 완료!'
+    +'<small style="display:block;margin-top:4px;">새 탭 처리 후 닫으세요.</small>';
+  showToast(from+' 메뉴 '+rows.length+'개 내보내기 완료!');
 }
 
 
