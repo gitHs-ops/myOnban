@@ -242,7 +242,7 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
 <div class="dup-warn" id="dupWarn">&#9888; 이미 오늘 목록에 있는 메뉴예요!</div>
     <div class="input-row">
       <input type="number" id="menuPrice" placeholder="금액 (천원)" min="1">
-      <input type="number" id="menuStock" placeholder="재고 (개)" min="0" value="0">
+      <input type="number" id="menuStock" placeholder="재고 (개)" min="0" value="10">
     </div>
     <div class="input-row" style="margin-bottom:12px;">
       <select id="menuCat">
@@ -432,7 +432,7 @@ function addMenu(){
   save();
   document.getElementById('menuName').value='';
   document.getElementById('menuPrice').value='';
-  document.getElementById('menuStock').value='0';
+  document.getElementById('menuStock').value='10';
   document.getElementById('menuChild').checked=false;
   document.getElementById('dupWarn').classList.remove('show');
   closeAcList();
