@@ -1005,6 +1005,7 @@ function showToast(msg){
 
 /* ════ 설정 ════ */
 var ONBAN_SHEET_URL='https://script.google.com/macros/s/AKfycbwtXJL4_lMynbG4U13PqbnPOiTp15evyw0BPPQ0A9aV5QYlI5dSQB4Ru-8BOqVR9RPq1w/exec';
+var ONBAN_SHEET_ID='1_jAZK1zwob2zbiOwKRYzmpKkaswOAi4RUGC043ujiLo';
 var SETTINGS_KEY='onban_settings';
 var BANKS_KEY='onban_banks';
 
@@ -1204,66 +1205,59 @@ function exportMenuSheet(){
 }
 
 
-/* ════ 구글 시트에서 메뉴 가져오기 ════ */
+/* ════ 구글 시트에서 메뉴 가져오기 (공개 CSV 방식) ════ */
 function importFromSheet(){
   var date=document.getElementById('sheetImportDate').value;
   if(!date){alert('날짜를 선택해주세요.');return;}
-  var gasUrl=ONBAN_SHEET_URL;
-  if(!gasUrl){showToast('GAS URL이 설정되지 않았습니다.');return;}
 
   var res=document.getElementById('sheetImportResult');
   res.style.display='block';
   res.style.color='#086266';
   res.textContent='불러오는 중...';
 
-  var url=gasUrl+'?action=import_menu&date='+encodeURIComponent(date);
-  var iframe=document.createElement('iframe');
-  iframe.style.display='none';
-  iframe.src=url;
-  iframe.onload=function(){
-    document.body.removeChild(iframe);
-    // iframe 방식은 응답을 읽을 수 없으므로 window.open으로 재시도
-  };
-  document.body.removeChild(iframe);
+  // 구글 시트 공개 CSV URL (시트 탭 이름으로 접근)
+  // 시트가 공개(뷰어 공유)되어 있어야 함
+  var csvUrl='https://docs.google.com/spreadsheets/d/'+ONBAN_SHEET_ID
+    +'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent(date);
 
-  // window.open 방식으로 변경 (응답 수신 불가 → 결과 직접 fetch 시도)
-  // GAS에서 데이터를 localStorage에 저장하는 방식 대신
-  // 새 탭 없이 처리: URL을 직접 스크립트로 로드
-  var script=document.createElement('script');
-  // JSONP 방식 사용
-  var cbName='__sheetCb_'+Date.now();
-  window[cbName]=function(data){
-    delete window[cbName];
-    document.head.removeChild(script);
-    if(data.success && data.menus && data.menus.length){
+  fetch(csvUrl)
+    .then(function(r){
+      if(!r.ok)throw new Error(date+' 탭을 찾을 수 없습니다. (시트 공유 확인)');
+      return r.text();
+    })
+    .then(function(csv){
+      var lines=csv.trim().split('\n');
+      if(lines.length<2)throw new Error('데이터가 없습니다.');
+      // 헤더 제거, CSV 파싱 (큰따옴표 제거)
       var stock=getSettings().stock;
-      var imported=data.menus.map(function(m){
-        return {
+      var imported=[];
+      for(var i=1;i<lines.length;i++){
+        var cols=lines[i].split(',').map(function(c){return c.replace(/^"|"$/g,'').trim();});
+        if(!cols[0])continue;
+        imported.push({
           id:Date.now()+Math.random(),
-          name:m.name||'',
-          price:m.price||0,
-          stock:m.stock||stock,
-          cat:m.cat||'기타',
-          child:m.child==='Y'||m.child===true,
+          name:cols[0]||'',
+          cat:cols[1]||'기타',
+          price:parseInt(cols[2])||0,
+          stock:parseInt(cols[3])||stock,
+          child:(cols[4]||'')==='Y',
           imgUrl:null
-        };
-      });
+        });
+      }
+      if(!imported.length)throw new Error('가져올 메뉴가 없습니다.');
       var add=menus.length>0?confirm('현재 목록에 추가할까요? 확인=추가 / 취소=전체교체'):false;
       if(add) menus=menus.concat(imported);
       else menus=imported;
-      save();
-      renderAll();
+      save(); renderAll();
       res.style.color='#1D9E75';
-      res.textContent='✅ '+imported.length+'개 메뉴를 가져왔습니다!';
-      showToast(date+' 메뉴 '+imported.length+'개 가져오기 완료!');
+      res.textContent='✅ '+imported.length+'개 가져오기 완료!';
+      showToast(date+' 메뉴 '+imported.length+'개 가져왔습니다!');
       setTimeout(function(){switchPage('manage');},800);
-    } else {
+    })
+    .catch(function(e){
       res.style.color='#e05';
-      res.textContent='❌ '+(data.error||date+' 탭에 데이터가 없습니다.');
-    }
-  };
-  script.src=gasUrl+'?action=import_menu&date='+encodeURIComponent(date)+'&callback='+cbName;
-  document.head.appendChild(script);
+      res.textContent='❌ '+e.message;
+    });
 }
 
 window.onload=function(){
