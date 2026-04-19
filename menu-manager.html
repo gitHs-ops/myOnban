@@ -1163,7 +1163,7 @@ function collectMenuData(from,to){
 
 function exportMenuSheet(){
   var from=document.getElementById('csvFrom').value;
-  var to=document.getElementById('csvTo').value;
+  var to=from; // 하루치만 전송
   var gasUrl=ONBAN_SHEET_URL||document.getElementById('cfgExportUrl').value.trim()||getAdminInfo().gasUrl;
   if(!gasUrl){showToast('GAS URL을 설정해주세요.');return;}
   var rows=collectMenuData(from,to);
