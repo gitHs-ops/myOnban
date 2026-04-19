@@ -455,6 +455,7 @@ function renderCatTabs(){
   Object.keys(CAT_COLOR).forEach(function(c){
     if(allMenus.some(function(m){return m.cat===c;}))cats.push(c);
   });
+  var hasChild=allMenus.some(function(m){return m.child;});
   var tabs=document.getElementById('catTabs');
   tabs.innerHTML='';
   cats.forEach(function(c){
@@ -464,12 +465,19 @@ function renderCatTabs(){
     btn.onclick=function(){setCat(c);};
     tabs.appendChild(btn);
   });
+  if(hasChild){
+    var btn=document.createElement('button');
+    btn.className='cat-tab'+(filterCat==='👧어린이'?' active':'');
+    btn.textContent='👧 어린이';
+    btn.onclick=function(){setCat('👧어린이');};
+    tabs.appendChild(btn);
+  }
 }
 function setCat(cat){filterCat=cat;renderCatTabs();renderMenuGrid();}
 
 // ── 메뉴 그리드 ──
 function renderMenuGrid(){
-  var filtered=filterCat==='전체'?allMenus:allMenus.filter(function(m){return m.cat===filterCat;});
+  var filtered=filterCat==='전체'?allMenus:filterCat==='👧어린이'?allMenus.filter(function(m){return m.child;}):allMenus.filter(function(m){return m.cat===filterCat;});
   var grid=document.getElementById('menuGrid');
   var noMenu=document.getElementById('noMenu');
   if(!filtered.length){grid.innerHTML='';noMenu.style.display='block';return;}
@@ -479,7 +487,7 @@ function renderMenuGrid(){
     var soldout=(m.stock||0)===0;
     var card=document.createElement('div');
     card.className='menu-card'+(m.child&&!soldout?' child-ok':'')+(soldout?' soldout':'');
-    card.onclick=function(){openDetail(m.id);};
+    card.onclick=(function(mid){return function(){openDetail(mid);};})(m.id);
 
     // 카테고리 점
     var dot=document.createElement('div');
@@ -526,8 +534,9 @@ function renderMenuGrid(){
 
 // ── 상세 ──
 function openDetail(id){
-  detailMenu=allMenus.find(function(m){return m.id===id;});
-  if(!detailMenu)return;
+  // id 타입 무관하게 비교
+  detailMenu=allMenus.find(function(m){return String(m.id)===String(id);});
+  if(!detailMenu){console.warn('메뉴를 찾을 수 없음:',id);return;}
   detailQty=1;
   renderDetail();
   goPage('detail');
