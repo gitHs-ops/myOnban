@@ -346,6 +346,23 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
     </div>
     <div class="setting-saved" id="settingSaved2">✓ 저장되었습니다</div>
   </div>
+  <div class="setting-card">
+    <div class="setting-title">👤 관리자 정보</div>
+    <div class="setting-row">
+      <span class="setting-label">연락처</span>
+      <input class="setting-input" type="tel" id="cfgAdminPhone" placeholder="예) 010-0000-0000">
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">이메일</span>
+      <input class="setting-input" type="email" id="cfgAdminEmail" placeholder="예) admin@email.com">
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">GAS URL</span>
+      <input class="setting-input" type="text" id="cfgGasUrl" placeholder="SMS 발송용 GAS 주소">
+    </div>
+    <button class="btn-setting-save" onclick="saveAdminInfo()">저장</button>
+    <div class="setting-saved" id="settingSaved3">✓ 저장되었습니다</div>
+  </div>
 </div>
 
 <div id="page-orders" class="page">
@@ -832,6 +849,20 @@ function makeConfirmMsg(order){
   return lines.join('\n');
 }
 
+function sendSMS(phone, msg){
+  var admin=getAdminInfo();
+  if(!admin.gasUrl){showToast('GAS URL이 설정되지 않았습니다.');return;}
+  // 솔라피 GAS 프록시 — GET, receiver + msg 파라미터
+  var qs='receiver='+encodeURIComponent(phone)+'&msg='+encodeURIComponent(msg);
+  fetch(admin.gasUrl+'?'+qs,{redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.success)showToast(phone+' 문자 발송 완료!');
+      else showToast('문자 발송 실패: '+(d.error||d.message||''));
+    })
+    .catch(function(e){showToast('문자 발송 오류: '+e.message);});
+}
+
 function confirmOrder(id){
   var orders=getOrders();
   var o=orders.find(function(o){return o.id===id;});
@@ -840,6 +871,11 @@ function confirmOrder(id){
   saveOrders(orders);
   showKakaoBox(id);
   copyConfirmMsg(id);
+  // SMS 발송
+  var msg=makeConfirmMsg(o);
+  var admin=getAdminInfo();
+  if(o.phone)sendSMS(o.phone, msg);
+  if(admin.phone)sendSMS(admin.phone, '[주문확정] '+o.name+'님 '+o.total.toLocaleString()+'천원 주문 확정');
   renderOrders();
 }
 
@@ -855,6 +891,7 @@ function cancelOrder(id){
   if(!o)return;
   o.status='cancelled';
   saveOrders(orders);
+  if(o.phone)sendSMS(o.phone,'[오늘의 반찬] '+o.name+'님, 주문이 취소됐습니다. 문의사항은 카카오채널로 연락주세요.');
   renderOrders();
 }
 
@@ -890,9 +927,25 @@ function showToast(msg){
 var SETTINGS_KEY='onban_settings';
 var BANKS_KEY='onban_banks';
 
+var ADMIN_KEY='onban_admin';
 function getSettings(){
   var def={stock:0};
   return Object.assign(def,JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}'));
+}
+function getAdminInfo(){
+  var def={phone:'010-2698-9056',email:'',gasUrl:'https://script.google.com/macros/s/AKfycbzOmKHKIIQGCUFinZxvOZw0hGAWLZlP54PNefQTRSkrm5ShRpgEYo2XO7oHy8zbZIrvOw/exec'};
+  return Object.assign(def,JSON.parse(localStorage.getItem(ADMIN_KEY)||'{}'));
+}
+function saveAdminInfo(){
+  var s={
+    phone:document.getElementById('cfgAdminPhone').value.trim(),
+    email:document.getElementById('cfgAdminEmail').value.trim(),
+    gasUrl:document.getElementById('cfgGasUrl').value.trim()
+  };
+  localStorage.setItem(ADMIN_KEY,JSON.stringify(s));
+  var el=document.getElementById('settingSaved3');
+  el.style.display='block';
+  setTimeout(function(){el.style.display='none';},2000);
 }
 function getBanks(){
   var def=[{name:'국민은행',holder:'김현철',account:'118210210117',primary:true}];
@@ -990,10 +1043,15 @@ function renderBankList(){
 function loadSettingsForm(){
   var s=getSettings();
   document.getElementById('cfgStock').value=s.stock;
+  var a=getAdminInfo();
+  document.getElementById('cfgAdminPhone').value=a.phone;
+  document.getElementById('cfgAdminEmail').value=a.email;
+  document.getElementById('cfgGasUrl').value=a.gasUrl;
   renderBankList();
 }
 
 window.onload=function(){
+  var _goto=localStorage.getItem('mm_goto');if(_goto){localStorage.removeItem('mm_goto');setTimeout(function(){switchPage(_goto);},400);}
   workDate=toISO(new Date());loadMenus(workDate);
   document.getElementById('dateDisplayBtn').textContent=fmtDate(workDate);
   renderAll();renderHistory();

@@ -757,32 +757,10 @@ function cartOrder(){
 function renderOrdererPage(){
   var el=document.getElementById('ordererOrderContent');
   el.innerHTML='';
-  // 주문 요약
-  var total=orderItems.reduce(function(s,c){return s+c.price*c.qty;},0);
-  var box=document.createElement('div');
-  box.style.cssText='background:#fff;border-radius:14px;margin:0 14px 14px;padding:16px;box-shadow:0 2px 12px rgba(8,98,102,.08);';
-  var t=document.createElement('div');
-  t.style.cssText='font-size:14px;font-weight:700;color:var(--teal);margin-bottom:12px;';
-  t.textContent='📋 주문 내역';
-  box.appendChild(t);
-  orderItems.forEach(function(c){
-    var row=document.createElement('div');
-    row.className='order-item';
-    row.innerHTML='<div><div class="order-iname">'+c.name+'</div><div class="order-iqty">'+c.qty+'개</div></div>'
-      +'<div class="order-iprice">'+comma(c.price*c.qty)+'천원</div>';
-    box.appendChild(row);
-  });
-  el.appendChild(box);
-  // 합계
-  var tb=document.createElement('div');
-  tb.className='order-total-box';
-  tb.style.margin='0 14px 14px';
-  tb.innerHTML='<span class="order-total-label">합계금액</span><span class="order-total-val">'+comma(total)+'천원</span>';
-  el.appendChild(tb);
   // 다음 버튼
   var btn=document.createElement('button');
   btn.className='btn-confirm';
-  btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" width="22" height="22"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>주문 확인하기';
+  btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" width="22" height="22"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>주문 확정하기';
   btn.onclick=function(){
     var name=document.getElementById('ordererName').value.trim();
     if(!name){alert('이름을 입력해주세요.');document.getElementById('ordererName').focus();return;}
@@ -791,12 +769,21 @@ function renderOrdererPage(){
       phone:document.getElementById('ordererPhone').value.trim(),
       memo:document.getElementById('ordererMemo').value.trim()
     };
-    goPage('order');
+    saveOrder();
+    goPage('payment');
   };
   el.appendChild(btn);
 }
 
-// ── 주문 저장 (localStorage) ──
+// ── SMS 발송 (솔라피 GAS 프록시) ──
+function sendSMS(phone, msg){
+  var admin=JSON.parse(localStorage.getItem('onban_admin')||'{}');
+  var gasUrl=admin.gasUrl||'https://script.google.com/macros/s/AKfycbzOmKHKIIQGCUFinZxvOZw0hGAWLZlP54PNefQTRSkrm5ShRpgEYo2XO7oHy8zbZIrvOw/exec';
+  var qs='receiver='+encodeURIComponent(phone)+'&msg='+encodeURIComponent(msg);
+  fetch(gasUrl+'?'+qs,{redirect:'follow'}).catch(function(){});
+}
+
+// ── 주문 저장 (localStorage) + SMS 발송 ──
 function saveOrder(){
   var total=orderItems.reduce(function(s,c){return s+c.price*c.qty;},0);
   var orders=JSON.parse(localStorage.getItem('orders')||'[]');
@@ -809,10 +796,27 @@ function saveOrder(){
     memo:ordererInfo.memo,
     items:orderItems.map(function(c){return {name:c.name,qty:c.qty,price:c.price};}),
     total:total,
-    status:'pending'  // pending / confirmed / cancelled
+    status:'pending'
   };
   orders.unshift(order);
   localStorage.setItem('orders',JSON.stringify(orders));
+
+  // 고객에게 주문 접수 문자
+  var customerMsg='[오늘의 반찬] '+order.name+'님, 주문이 접수됐습니다! '
+    +order.items.map(function(i){return i.name+' '+i.qty+'개';}).join(', ')
+    +' 합계: '+total.toLocaleString()+'천원. 입금 확인 후 확정 안내 드립니다.';
+  if(order.phone)sendSMS(order.phone, customerMsg);
+
+  // 관리자에게 새 주문 알림
+  var adminInfo=JSON.parse(localStorage.getItem('onban_admin')||'{}');
+  var adminPhone=adminInfo.phone||'010-2698-9056';
+  var adminMsg='[오늘의 반찬] 새 주문! '
+    +order.name+(order.phone?' ('+order.phone+')':'')
+    +' '+order.items.map(function(i){return i.name+' '+i.qty+'개';}).join(', ')
+    +' 합계: '+total.toLocaleString()+'천원'
+    +(order.memo?' 요청:'+order.memo:'');
+  sendSMS(adminPhone, adminMsg);
+
   return order;
 }
 
