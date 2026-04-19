@@ -1173,10 +1173,6 @@ function exportMenuSheet(){
   var idx=0;
   function sendNext(){
     if(idx>=chunks.length){
-      // 모든 청크 전송 완료 → 완료 신호
-      var doneUrl=gasUrl+'?action=export_menu&data='
-        +encodeURIComponent(JSON.stringify([]))+'&done=1&total='+total;
-      window.open(doneUrl,'_blank');
       btn.disabled=false; btn.textContent='📊 구글 시트로 내보내기';
       res.style.display='block'; res.style.color='#1D9E75';
       res.innerHTML='✅ '+total+'개 항목 전송 완료!<br>'
@@ -1186,19 +1182,19 @@ function exportMenuSheet(){
     }
     var chunk=chunks[idx];
     var isFirst=(idx===0)?'1':'0';
+    var isLast=(idx===chunks.length-1)?'1':'0';
     var url=gasUrl+'?action=export_menu'
       +'&data='+encodeURIComponent(JSON.stringify(chunk))
       +'&chunk='+idx
-      +'&total_chunks='+chunks.length
-      +'&first='+isFirst;
-    // 숨김 iframe으로 전송 (새 탭 없이)
+      +'&first='+isFirst
+      +'&done='+isLast;
     var iframe=document.createElement('iframe');
     iframe.style.display='none';
     iframe.src=url;
     iframe.onload=function(){
       document.body.removeChild(iframe);
       idx++;
-      setTimeout(sendNext, 800); // 청크 간 간격
+      setTimeout(sendNext, 600);
     };
     document.body.appendChild(iframe);
   }
