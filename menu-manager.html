@@ -326,7 +326,10 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
       <span style="font-size:13px;color:#555;white-space:nowrap;">날짜 탭</span>
       <input class="setting-input" type="date" id="sheetImportDate" style="flex:1;">
     </div>
-    <button class="parse-btn" onclick="importFromSheet()">📥 시트에서 가져오기</button>
+    <div style="display:flex;gap:8px;margin-top:6px;">
+      <button class="parse-btn" style="flex:1;" onclick="importFromSheet('add')">📥 시트내용으로 추가하기</button>
+      <button class="parse-btn" style="flex:1;background:#086266;" onclick="importFromSheet('replace')">📥 시트내용으로 대체하기</button>
+    </div>
     <div id="sheetImportResult" style="display:none;margin-top:10px;font-size:13px;"></div>
   </div>
   <!-- 카카오 텍스트 가져오기 -->
@@ -1183,15 +1186,12 @@ function exportMenuSheet(){
   // window.open 새 탭 방식 (GitHub Pages CORS 우회 유일한 방법)
   window.open(url,'_blank');
   btn.disabled=false; btn.textContent='📊 구글 시트로 내보내기';
-  res.style.display='block'; res.style.color='#1D9E75';
-  res.innerHTML='✅ '+rows.length+'개 전송 완료!'
-    +'<small style="display:block;margin-top:4px;">새 탭 처리 후 닫으세요.</small>';
   showToast(from+' 메뉴 '+rows.length+'개 내보내기 완료!');
 }
 
 
 /* ════ 구글 시트에서 메뉴 가져오기 (공개 CSV 방식) ════ */
-function importFromSheet(){
+function importFromSheet(mode){
   var date=document.getElementById('sheetImportDate').value;
   if(!date){alert('날짜를 선택해주세요.');return;}
 
@@ -1230,9 +1230,13 @@ function importFromSheet(){
         });
       }
       if(!imported.length)throw new Error('가져올 메뉴가 없습니다.');
-      var add=menus.length>0?confirm('현재 목록에 추가할까요? 확인=추가 / 취소=전체교체'):false;
-      if(add) menus=menus.concat(imported);
-      else menus=imported;
+      if(mode==='add'){
+        if(!confirm(imported.length+'개 메뉴를 현재 목록에 추가할까요?'))return;
+        menus=menus.concat(imported);
+      } else {
+        if(!confirm(imported.length+'개 메뉴로 현재 목록을 대체할까요?'))return;
+        menus=imported;
+      }
       save(); renderAll();
       res.style.color='#1D9E75';
       res.textContent='✅ '+imported.length+'개 가져오기 완료!';
