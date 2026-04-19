@@ -377,10 +377,6 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
       <input class="setting-input" type="email" id="cfgAdminEmail" placeholder="예) admin@email.com">
     </div>
     <div class="setting-row">
-      <span class="setting-label">GAS URL</span>
-      <input class="setting-input" type="text" id="cfgGasUrl" placeholder="SMS 발송용 GAS 주소">
-    </div>
-    <div class="setting-row">
       <span class="setting-label">배송업체</span>
       <input class="setting-input" type="tel" id="cfgDeliveryPhone" placeholder="예) 010-0000-0000">
     </div>
@@ -1013,7 +1009,6 @@ function saveAdminInfo(){
   var s={
     phone:document.getElementById('cfgAdminPhone').value.trim(),
     email:document.getElementById('cfgAdminEmail').value.trim(),
-    gasUrl:document.getElementById('cfgGasUrl').value.trim(),
     deliveryPhone:document.getElementById('cfgDeliveryPhone').value.trim()
   };
   localStorage.setItem(ADMIN_KEY,JSON.stringify(s));
@@ -1126,7 +1121,6 @@ function loadSettingsForm(){
   var a=getAdminInfo();
   document.getElementById('cfgAdminPhone').value=a.phone;
   document.getElementById('cfgAdminEmail').value=a.email;
-  document.getElementById('cfgGasUrl').value=a.gasUrl;
   document.getElementById('cfgDeliveryPhone').value=a.deliveryPhone||'';
   var eu=localStorage.getItem('onban_export_url')||'';
   document.getElementById('cfgExportUrl').value=eu;
@@ -1164,30 +1158,24 @@ function exportMenuSheet(){
   if(!gasUrl){showToast('GAS URL을 설정해주세요.');return;}
   var rows=collectMenuData(from,to);
   if(!rows.length){showToast('내보낼 데이터가 없어요.');return;}
+
   var btn=document.getElementById('btnExport');
   var res=document.getElementById('exportResult');
-  btn.disabled=true;btn.textContent='전송 중...';
+  btn.disabled=true; btn.textContent='전송 중...';
   res.style.display='none';
+
+  // CORS 우회: XMLHttpRequest no-cors 대신 숨김 form GET 방식
   var encoded=encodeURIComponent(JSON.stringify(rows));
-  fetch(gasUrl+'?action=export_menu&data='+encoded,{redirect:'follow'})
-    .then(function(r){return r.json();})
-    .then(function(d){
-      res.style.display='block';
-      if(d.success){
-        res.style.color='#1D9E75';
-        res.innerHTML='✅ '+rows.length+'개 완료! '
-          +(d.url?'<a href="'+d.url+'" target="_blank" style="color:#086266;font-weight:700;">구글 시트 열기 →</a>':'');
-        showToast('구글 시트 내보내기 완료!');
-      }else{
-        res.style.color='#e05';
-        res.textContent='오류: '+(d.error||'실패');
-      }
-    })
-    .catch(function(e){
-      res.style.display='block';res.style.color='#e05';
-      res.textContent='연결 오류: '+e.message;
-    })
-    .finally(function(){btn.disabled=false;btn.textContent='📊 구글 시트로 내보내기';});
+  var url=gasUrl+'?action=export_menu&data='+encoded;
+
+  // 새 탭으로 GAS 직접 호출 (CORS 없음)
+  var win=window.open(url,'_blank');
+  btn.disabled=false; btn.textContent='📊 구글 시트로 내보내기';
+  res.style.display='block';
+  res.style.color='#1D9E75';
+  res.innerHTML='✅ '+rows.length+'개 전송 완료! 새 탭에서 결과를 확인하세요.<br>'
+    +'(처리 완료 후 새 탭은 닫으셔도 됩니다)';
+  showToast('구글 시트 내보내기 요청 완료!');
 }
 
 
