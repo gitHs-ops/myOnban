@@ -318,8 +318,20 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
   </div>
 </div>
 <div id="page-import" class="page">
+  <!-- 구글 시트 가져오기 -->
+  <div class="card" style="margin-bottom:14px;">
+    <div class="card-title">📊 구글 시트에서 가져오기</div>
+    <p style="font-size:13px;color:#666;margin-bottom:12px;">구글 시트의 날짜 탭에서 메뉴를 가져옵니다.</p>
+    <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;">
+      <span style="font-size:13px;color:#555;white-space:nowrap;">날짜 탭</span>
+      <input class="setting-input" type="date" id="sheetImportDate" style="flex:1;">
+    </div>
+    <button class="parse-btn" onclick="importFromSheet()">📥 시트에서 가져오기</button>
+    <div id="sheetImportResult" style="display:none;margin-top:10px;font-size:13px;"></div>
+  </div>
+  <!-- 카카오 텍스트 가져오기 -->
   <div class="card">
-    <div class="card-title">카카오 텍스트 가져오기</div>
+    <div class="card-title">💬 카카오 텍스트 가져오기</div>
     <p style="font-size:13px;color:#666;margin-bottom:12px;">카카오채널에서 보낸 텍스트를 붙여넣으면 자동 변환해드려요.</p>
     <textarea class="paste-area" id="pasteArea" placeholder="예) 불낙전골밀키트 15&#10;한우육전 10&#10;(숫자는 금액, 천원 단위)"></textarea>
     <button class="parse-btn" onclick="parseKakao()">메뉴 자동 인식하기</button>
@@ -1116,6 +1128,7 @@ function loadSettingsForm(){
   var firstDay=today.substring(0,7)+'-01';
   document.getElementById('csvFrom').value=firstDay;
   document.getElementById('csvTo').value=today;
+  document.getElementById('sheetImportDate').value=today;
   var s=getSettings();
   document.getElementById('cfgStock').value=s.stock;
   var a=getAdminInfo();
@@ -1190,6 +1203,68 @@ function exportMenuSheet(){
   document.body.appendChild(iframe);
 }
 
+
+/* ════ 구글 시트에서 메뉴 가져오기 ════ */
+function importFromSheet(){
+  var date=document.getElementById('sheetImportDate').value;
+  if(!date){alert('날짜를 선택해주세요.');return;}
+  var gasUrl=ONBAN_SHEET_URL;
+  if(!gasUrl){showToast('GAS URL이 설정되지 않았습니다.');return;}
+
+  var res=document.getElementById('sheetImportResult');
+  res.style.display='block';
+  res.style.color='#086266';
+  res.textContent='불러오는 중...';
+
+  var url=gasUrl+'?action=import_menu&date='+encodeURIComponent(date);
+  var iframe=document.createElement('iframe');
+  iframe.style.display='none';
+  iframe.src=url;
+  iframe.onload=function(){
+    document.body.removeChild(iframe);
+    // iframe 방식은 응답을 읽을 수 없으므로 window.open으로 재시도
+  };
+  document.body.removeChild(iframe);
+
+  // window.open 방식으로 변경 (응답 수신 불가 → 결과 직접 fetch 시도)
+  // GAS에서 데이터를 localStorage에 저장하는 방식 대신
+  // 새 탭 없이 처리: URL을 직접 스크립트로 로드
+  var script=document.createElement('script');
+  // JSONP 방식 사용
+  var cbName='__sheetCb_'+Date.now();
+  window[cbName]=function(data){
+    delete window[cbName];
+    document.head.removeChild(script);
+    if(data.success && data.menus && data.menus.length){
+      var stock=getSettings().stock;
+      var imported=data.menus.map(function(m){
+        return {
+          id:Date.now()+Math.random(),
+          name:m.name||'',
+          price:m.price||0,
+          stock:m.stock||stock,
+          cat:m.cat||'기타',
+          child:m.child==='Y'||m.child===true,
+          imgUrl:null
+        };
+      });
+      var add=menus.length>0?confirm('현재 목록에 추가할까요? 확인=추가 / 취소=전체교체'):false;
+      if(add) menus=menus.concat(imported);
+      else menus=imported;
+      save();
+      renderAll();
+      res.style.color='#1D9E75';
+      res.textContent='✅ '+imported.length+'개 메뉴를 가져왔습니다!';
+      showToast(date+' 메뉴 '+imported.length+'개 가져오기 완료!');
+      setTimeout(function(){switchPage('manage');},800);
+    } else {
+      res.style.color='#e05';
+      res.textContent='❌ '+(data.error||date+' 탭에 데이터가 없습니다.');
+    }
+  };
+  script.src=gasUrl+'?action=import_menu&date='+encodeURIComponent(date)+'&callback='+cbName;
+  document.head.appendChild(script);
+}
 
 window.onload=function(){
   var _goto=localStorage.getItem('mm_goto');if(_goto){localStorage.removeItem('mm_goto');setTimeout(function(){switchPage(_goto);},400);}
