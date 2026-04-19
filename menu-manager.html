@@ -1171,18 +1171,23 @@ function exportMenuSheet(){
   for(var i=0;i<rows.length;i+=CHUNK) chunks.push(rows.slice(i,i+CHUNK));
 
   var idx=0;
-  // 새 탭으로 한 번에 전송 (CORS 우회)
-  // imgUrl 제외해서 URL 길이 최소화
+  // 숨김 iframe으로 전송 (새 탭 없이, CORS 우회)
   var slim=rows.map(function(m){
     return [m.date,m.name,m.cat,m.price,m.stock,m.child?1:0];
   });
   var url=gasUrl+'?action=export_menu&data='+encodeURIComponent(JSON.stringify(slim));
-  window.open(url,'_blank');
-  btn.disabled=false; btn.textContent='📊 구글 시트로 내보내기';
-  res.style.display='block'; res.style.color='#1D9E75';
-  res.innerHTML='✅ '+total+'개 전송! 새 탭에서 처리 중...<br>'
-    +'<small>완료 후 새 탭은 닫으셔도 됩니다.</small>';
-  showToast('구글 시트 내보내기 완료!');
+  var iframe=document.createElement('iframe');
+  iframe.style.display='none';
+  iframe.src=url;
+  iframe.onload=function(){
+    document.body.removeChild(iframe);
+    btn.disabled=false; btn.textContent='📊 구글 시트로 내보내기';
+    res.style.display='block'; res.style.color='#1D9E75';
+    res.innerHTML='✅ '+total+'개 내보내기 완료!<br>'
+      +'<small>구글 시트에서 확인하세요.</small>';
+    showToast('구글 시트 내보내기 완료!');
+  };
+  document.body.appendChild(iframe);
 }
 
 
