@@ -360,8 +360,8 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
         <input class="setting-input" type="text" id="newBankAccount" placeholder="예) 110-123-456789">
       </div>
       <div style="display:flex;gap:8px;margin-top:4px;">
-        <button class="btn-setting-save" style="flex:1;" onclick="addBank()">추가</button>
-        <button class="btn-setting-save" style="flex:0 0 auto;background:#aaa;" onclick="toggleBankForm()">취소</button>
+        <button class="btn-setting-save" style="flex:0 0 auto;" onclick="addBank()">추가</button>
+        <button class="btn-setting-save" style="flex:1;background:#aaa;" onclick="toggleBankForm()">취소</button>
       </div>
     </div>
     <div class="setting-saved" id="settingSaved2">✓ 저장되었습니다</div>
@@ -388,8 +388,8 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
     <div class="setting-saved" id="settingSaved3">✓ 저장되었습니다</div>
   </div>
   <div class="setting-card">
-    <div class="setting-title">📂 메뉴 창고 내보내기</div>
-    <p style="font-size:12px;color:#aaa;margin-bottom:14px;">저장된 모든 날짜의 메뉴 데이터를 CSV 파일로 내보냅니다.</p>
+    <div class="setting-title">📊 구글 시트 내보내기</div>
+    <p style="font-size:12px;color:#aaa;margin-bottom:14px;">메뉴 창고 데이터를 구글 시트 <b>온반01</b> 탭으로 내보냅니다.</p>
     <div class="setting-row" style="margin-bottom:10px;">
       <span class="setting-label">기간 시작</span>
       <input class="setting-input" type="date" id="csvFrom">
@@ -398,7 +398,9 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
       <span class="setting-label">기간 종료</span>
       <input class="setting-input" type="date" id="csvTo">
     </div>
-    <button class="btn-setting-save" onclick="exportMenuCSV()">📥 CSV 다운로드</button>
+    <button class="btn-setting-save" onclick="exportMenuSheet()" id="btnExport">📊 구글 시트로 내보내기</button>
+    <input type="hidden" id="cfgExportUrl">
+    <div id="exportResult" style="font-size:13px;margin-top:10px;display:none;"></div>
   </div>
 </div>
 
@@ -994,6 +996,7 @@ function showToast(msg){
 }
 
 /* ════ 설정 ════ */
+var ONBAN_SHEET_URL='https://script.google.com/macros/s/AKfycbwtXJL4_lMynbG4U13PqbnPOiTp15evyw0BPPQ0A9aV5QYlI5dSQB4Ru-8BOqVR9RPq1w/exec';
 var SETTINGS_KEY='onban_settings';
 var BANKS_KEY='onban_banks';
 
@@ -1014,6 +1017,7 @@ function saveAdminInfo(){
     deliveryPhone:document.getElementById('cfgDeliveryPhone').value.trim()
   };
   localStorage.setItem(ADMIN_KEY,JSON.stringify(s));
+  localStorage.setItem('onban_export_url',document.getElementById('cfgExportUrl').value.trim());
   var el=document.getElementById('settingSaved3');
   el.style.display='block';
   setTimeout(function(){el.style.display='none';},2000);
@@ -1124,64 +1128,68 @@ function loadSettingsForm(){
   document.getElementById('cfgAdminEmail').value=a.email;
   document.getElementById('cfgGasUrl').value=a.gasUrl;
   document.getElementById('cfgDeliveryPhone').value=a.deliveryPhone||'';
+  var eu=localStorage.getItem('onban_export_url')||'';
+  document.getElementById('cfgExportUrl').value=eu;
   renderBankList();
 }
 
-/* ════ CSV 내보내기 ════ */
-function exportMenuCSV(){
-  var from=document.getElementById('csvFrom').value;
-  var to=document.getElementById('csvTo').value;
-
-  // localStorage에서 menus_ 키 전체 수집
+/* ════ 구글 시트 내보내기 ════ */
+function collectMenuData(from,to){
   var keys=[];
   for(var i=0;i<localStorage.length;i++){
     var k=localStorage.key(i);
     if(k&&k.indexOf('menus_')===0){
       var d=k.replace('menus_','');
-      if(/^\d{4}-\d{2}-\d{2}$/.test(d)){
+      if(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(d)){
         if((!from||d>=from)&&(!to||d<=to))keys.push(d);
       }
     }
   }
-  if(!keys.length){showToast('내보낼 데이터가 없어요.');return;}
   keys.sort();
-
-  var rows=[['날짜','메뉴명','카테고리','금액(천원)','재고','어린이가능','이미지URL']];
+  var rows=[];
   keys.forEach(function(d){
-    var menus=JSON.parse(localStorage.getItem('menus_'+d)||'[]');
-    menus.forEach(function(m){
-      rows.push([
-        d,
-        m.name||'',
-        m.cat||'',
-        m.price||0,
-        m.stock||0,
-        m.child?'Y':'N',
-        m.imgUrl||''
-      ]);
+    var ms=JSON.parse(localStorage.getItem('menus_'+d)||'[]');
+    ms.forEach(function(m){
+      rows.push({date:d,name:m.name||'',cat:m.cat||'',price:m.price||0,
+        stock:m.stock||0,child:m.child?true:false,imgUrl:m.imgUrl||''});
     });
   });
-
-  // BOM + CSV 생성
-  var bom='﻿';
-  var csv=bom+rows.map(function(r){
-    return r.map(function(c){
-      var s=String(c);
-      if(s.indexOf(',')>=0||s.indexOf('"')>=0||s.indexOf('\n')>=0)
-        s='"'+s.replace(/"/g,'""')+'"';
-      return s;
-    }).join(',');
-  }).join('\n');
-
-  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');
-  a.href=url;
-  a.download='onban_menu_'+toISO(new Date())+'.csv';
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast(keys.length+'개 날짜 데이터를 내보냈어요!');
+  return rows;
 }
+
+function exportMenuSheet(){
+  var from=document.getElementById('csvFrom').value;
+  var to=document.getElementById('csvTo').value;
+  var gasUrl=ONBAN_SHEET_URL||document.getElementById('cfgExportUrl').value.trim()||getAdminInfo().gasUrl;
+  if(!gasUrl){showToast('GAS URL을 설정해주세요.');return;}
+  var rows=collectMenuData(from,to);
+  if(!rows.length){showToast('내보낼 데이터가 없어요.');return;}
+  var btn=document.getElementById('btnExport');
+  var res=document.getElementById('exportResult');
+  btn.disabled=true;btn.textContent='전송 중...';
+  res.style.display='none';
+  var encoded=encodeURIComponent(JSON.stringify(rows));
+  fetch(gasUrl+'?action=export_menu&data='+encoded,{redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      res.style.display='block';
+      if(d.success){
+        res.style.color='#1D9E75';
+        res.innerHTML='✅ '+rows.length+'개 완료! '
+          +(d.url?'<a href="'+d.url+'" target="_blank" style="color:#086266;font-weight:700;">구글 시트 열기 →</a>':'');
+        showToast('구글 시트 내보내기 완료!');
+      }else{
+        res.style.color='#e05';
+        res.textContent='오류: '+(d.error||'실패');
+      }
+    })
+    .catch(function(e){
+      res.style.display='block';res.style.color='#e05';
+      res.textContent='연결 오류: '+e.message;
+    })
+    .finally(function(){btn.disabled=false;btn.textContent='📊 구글 시트로 내보내기';});
+}
+
 
 window.onload=function(){
   var _goto=localStorage.getItem('mm_goto');if(_goto){localStorage.removeItem('mm_goto');setTimeout(function(){switchPage(_goto);},400);}
