@@ -1126,8 +1126,7 @@ function renderBankList(){
 function loadSettingsForm(){
   // CSV 날짜 기본값: 이번달 1일 ~ 오늘
   var today=toISO(new Date());
-  var firstDay=today.substring(0,7)+'-01';
-  document.getElementById('csvFrom').value=firstDay;
+  document.getElementById('csvFrom').value=today;
   document.getElementById('csvTo').value=today;
   document.getElementById('sheetImportDate').value=today;
   var s=getSettings();
