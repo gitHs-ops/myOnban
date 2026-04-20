@@ -649,7 +649,9 @@ function addToCart(){
 }
 function buyNow(){
   addToCart();
+  // 장바구니에서 주문하기와 동일한 흐름
   orderItems=cart.filter(function(c){return c.checked;});
+  if(!orderItems.length){showToast('주문할 항목을 선택해주세요.');return;}
   goPage('orderer');
   renderOrdererPage();
 }
