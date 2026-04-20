@@ -164,6 +164,7 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
 .order-card.pending{border-left-color:var(--amber,#E9A826);}
 .order-card.confirmed{border-left-color:#1D9E75;}
 .order-card.cancelled{border-left-color:#ccc;opacity:.6;}
+.order-card.delivered{border-left-color:#086266;}
 .order-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
 .order-name{font-size:16px;font-weight:700;color:#1a1a1a;}
 .order-time{font-size:12px;color:#888;margin-top:2px;}
@@ -173,6 +174,7 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
 .status-pending{background:#fff8e1;color:#b8860b;}
 .status-confirmed{background:#e8f8f2;color:#1D9E75;}
 .status-cancelled{background:#f0f0f0;color:#999;}
+.status-delivered{background:#e0f4f1;color:#086266;font-weight:700;}
 .order-items{font-size:13px;color:#555;margin-bottom:10px;line-height:1.8;}
 .order-total{font-size:15px;font-weight:900;color:#086266;margin-bottom:12px;}
 .order-memo{font-size:12px;color:#b8860b;background:#fff8e1;padding:6px 10px;border-radius:6px;margin-bottom:10px;}
@@ -797,14 +799,16 @@ function renderOrders(){
   // 통계
   var pending=todayOrders.filter(function(o){return o.status==='pending';}).length;
   var confirmed=todayOrders.filter(function(o){return o.status==='confirmed';}).length;
+  var delivered=todayOrders.filter(function(o){return o.status==='delivered';}).length;
   var cancelled=todayOrders.filter(function(o){return o.status==='cancelled';}).length;
   document.getElementById('orderStats').innerHTML=
     '<div class="order-stat"><div class="order-stat-num">'+todayOrders.length+'</div><div class="order-stat-lbl">전체</div></div>'+
     '<div class="order-stat"><div class="order-stat-num" style="color:#E9A826;">'+pending+'</div><div class="order-stat-lbl">대기중</div></div>'+
-    '<div class="order-stat"><div class="order-stat-num" style="color:#1D9E75;">'+confirmed+'</div><div class="order-stat-lbl">확정</div></div>';
+    '<div class="order-stat"><div class="order-stat-num" style="color:#1D9E75;">'+confirmed+'</div><div class="order-stat-lbl">확정</div></div>'+
+    '<div class="order-stat"><div class="order-stat-num" style="color:#086266;">'+delivered+'</div><div class="order-stat-lbl">배송완료</div></div>';
 
   // 필터 탭
-  var filterLabels=[['all','전체'],['pending','대기중'],['confirmed','확정'],['cancelled','취소']];
+  var filterLabels=[['all','전체'],['pending','대기중'],['confirmed','확정'],['delivered','배송완료'],['cancelled','취소']];
   document.getElementById('orderFilterTabs').innerHTML=filterLabels.map(function(f){
     return '<button class="order-filter-tab'+(orderFilter===f[0]?' active':'')+'" data-f="'+f[0]+'">'+f[1]+'</button>';
   }).join('');
@@ -825,8 +829,8 @@ function renderOrders(){
     card.className='order-card '+order.status;
     card.id='ocard_'+order.id;
 
-    var statusText={'pending':'⏳ 대기중','confirmed':'✅ 확정','cancelled':'❌ 취소'};
-    var statusClass={'pending':'status-pending','confirmed':'status-confirmed','cancelled':'status-cancelled'};
+    var statusText={'pending':'⏳ 대기중','confirmed':'✅ 확정','cancelled':'❌ 취소','delivered':'🚚 배송완료'};
+    var statusClass={'pending':'status-pending','confirmed':'status-confirmed','cancelled':'status-cancelled','delivered':'status-delivered'};
 
     var header=document.createElement('div');
     header.className='order-header';
@@ -879,10 +883,22 @@ function renderOrders(){
     }
 
     if(order.status==='confirmed'){
+      var actionsC=document.createElement('div');
+      actionsC.className='order-actions';
+
+      var btnDlv=document.createElement('button');
+      btnDlv.className='btn-confirm-order';
+      btnDlv.textContent='✅ 배송완료';
+      btnDlv.onclick=function(){deliverOrder(order.id);};
+
       var btnMsg=document.createElement('button');
       btnMsg.className='btn-kakao-msg';
+      btnMsg.style.marginTop='6px';
       btnMsg.textContent='💛 카카오 배송 확정 문구 복사';
       btnMsg.onclick=function(){copyConfirmMsg(order.id);};
+
+      actionsC.appendChild(btnDlv);
+      card.appendChild(actionsC);
       card.appendChild(btnMsg);
     }
 
@@ -959,6 +975,19 @@ function confirmOrder(id){
 function showKakaoBox(id){
   var box=document.getElementById('kakao_'+id);
   if(box)box.style.display='block';
+}
+
+function deliverOrder(id){
+  if(!confirm('배송완료로 변경할까요?'))return;
+  var orders=getOrders();
+  var o=orders.find(function(o){return o.id===id;});
+  if(!o)return;
+  o.status='delivered';
+  saveOrders(orders);
+  if(o.phone){
+    sendSMS(o.phone,'[오늘의 반찬] '+o.name+'님, 배송이 완료됐습니다! 맛있게 드세요 😊');
+  }
+  renderOrders();
 }
 
 function cancelOrder(id){
