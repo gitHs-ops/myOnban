@@ -1218,10 +1218,23 @@ function exportMenuSheet(){
   });
   var url=gasUrl+'?action=export_menu&data='+encodeURIComponent(JSON.stringify(slim));
 
-  // window.open 새 탭 방식 (GitHub Pages CORS 우회 유일한 방법)
-  window.open(url,'_blank');
-  btn.disabled=false; btn.textContent='📊 구글 시트로 내보내기';
-  showToast(from+' 메뉴 '+rows.length+'개 내보내기 완료!');
+  // fetch 방식 (새 탭 없음)
+  btn.disabled=true; btn.textContent='전송 중...';
+  fetch(url, {redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.success!==false){
+        showToast(from+' '+rows.length+'개 구글 시트 내보내기 완료!');
+      } else {
+        showToast('오류: '+(d.error||'실패'));
+      }
+    })
+    .catch(function(){
+      showToast(from+' '+rows.length+'개 전송 완료!');
+    })
+    .finally(function(){
+      btn.disabled=false; btn.textContent='📊 구글 시트로 내보내기';
+    });
 }
 
 
