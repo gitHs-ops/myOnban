@@ -891,15 +891,8 @@ function renderOrders(){
       btnDlv.textContent='✅ 배송완료';
       btnDlv.onclick=function(){deliverOrder(order.id);};
 
-      var btnMsg=document.createElement('button');
-      btnMsg.className='btn-kakao-msg';
-      btnMsg.style.marginTop='6px';
-      btnMsg.textContent='💛 카카오 배송 확정 문구 복사';
-      btnMsg.onclick=function(){copyConfirmMsg(order.id);};
-
       actionsC.appendChild(btnDlv);
       card.appendChild(actionsC);
-      card.appendChild(btnMsg);
     }
 
     el.appendChild(card);
