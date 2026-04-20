@@ -920,16 +920,20 @@ function makeConfirmMsg(order){
 
 function sendSMS(phone, msg){
   var admin=getAdminInfo();
-  if(!admin.gasUrl){showToast('GAS URL이 설정되지 않았습니다.');return;}
-  // 솔라피 GAS 프록시 — GET, receiver + msg 파라미터
+  if(!admin.gasUrl){return;}
   var qs='receiver='+encodeURIComponent(phone)+'&msg='+encodeURIComponent(msg);
-  fetch(admin.gasUrl+'?'+qs,{redirect:'follow'})
-    .then(function(r){return r.json();})
-    .then(function(d){
-      if(d.success)showToast(phone+' 문자 발송 완료!');
-      else showToast('문자 발송 실패: '+(d.error||d.message||''));
-    })
-    .catch(function(e){showToast('문자 발송 오류: '+e.message);});
+  fetch(admin.gasUrl+'?'+qs,{redirect:'follow'}).catch(function(){});
+}
+
+function sendAlimtalk(phone, tplId, vars, fallbackMsg){
+  var admin=getAdminInfo();
+  if(!admin.gasUrl||!phone)return;
+  var qs='action=alimtalk'
+    +'&receiver='+encodeURIComponent(phone)
+    +'&tplId='+encodeURIComponent(tplId)
+    +'&vars='+encodeURIComponent(JSON.stringify(vars))
+    +'&msg='+encodeURIComponent(fallbackMsg||'');
+  fetch(admin.gasUrl+'?'+qs,{redirect:'follow'}).catch(function(){});
 }
 
 function confirmOrder(id){
@@ -951,12 +955,14 @@ function confirmOrder(id){
     // 현재 작업중인 날짜면 화면도 갱신
     if(workDate===o.date){loadMenus(workDate);renderAll();}
   }
-  // 고객에게 배송 확정 문자
+  // 고객에게 배송확정 알림톡 (실패시 SMS 대체)
   if(o.phone){
-    var custMsg='[오늘의 반찬] '+o.name+'님, 배송이 확정됐습니다! '
-      +o.items.map(function(i){return i.name+' '+i.qty+'개';}).join(', ')
-      +' 합계: '+o.total.toLocaleString()+'천원. 감사합니다 😊';
-    sendSMS(o.phone, custMsg);
+    var menuList=o.items.map(function(i){return i.name+' '+i.qty+'개';}).join(', ');
+    sendAlimtalk(o.phone,
+      'KA01TP260420064826771YwlmOoWlKMa',
+      {'고객명':o.name,'메뉴목록':menuList,'금액':o.total.toLocaleString()},
+      '[오늘의 반찬] '+o.name+'님, 배송이 확정됐습니다! '+menuList+' 합계: '+o.total.toLocaleString()+'천원'
+    );
   }
   // 배송업체에 배송 정보 문자
   var admin=getAdminInfo();
@@ -985,7 +991,11 @@ function deliverOrder(id){
   o.status='delivered';
   saveOrders(orders);
   if(o.phone){
-    sendSMS(o.phone,'[오늘의 반찬] '+o.name+'님, 배송이 완료됐습니다! 맛있게 드세요 😊');
+    sendAlimtalk(o.phone,
+      'KA01TP260420064907492eIPbycJK6Mk',
+      {'고객명':o.name},
+      '[오늘의 반찬] '+o.name+'님, 배송이 완료됐습니다! 맛있게 드세요 😊'
+    );
   }
   renderOrders();
 }
@@ -999,13 +1009,12 @@ function cancelOrder(id){
   saveOrders(orders);
   if(o.phone){
     var primary=getPrimaryBank();
-    var cancelMsg='[오늘의 반찬] '+o.name+'님, 주문이 취소됐습니다.'
-      +' 환불 방법을 선택해 주세요.'
-      +' ① 계좌이체 환불: 환불받으실 계좌번호를 카카오채널로 알려주세요.'
-      +(primary.account?' (입금계좌: '+primary.name+' '+primary.holder+' '+primary.account+')':'')
-      +' ② 쿠폰 포인트 적립: 다음 주문 시 사용 가능한 포인트로 적립해 드립니다.'
-      +' 원하시는 방법을 카카오채널로 알려주세요.';
-    sendSMS(o.phone, cancelMsg);
+    var fallback='[오늘의 반찬] '+o.name+'님, 주문이 취소됐습니다. 환불 방법을 카카오채널로 알려주세요.';
+    sendAlimtalk(o.phone,
+      'KA01TP260420064944290l6Rv4uFM5yE',
+      {'고객명':o.name},
+      fallback
+    );
   }
   renderOrders();
 }
@@ -1050,7 +1059,7 @@ function getSettings(){
   return Object.assign(def,JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}'));
 }
 function getAdminInfo(){
-  var def={phone:'010-2698-9056',email:'',gasUrl:'https://script.google.com/macros/s/AKfycbzOmKHKIIQGCUFinZxvOZw0hGAWLZlP54PNefQTRSkrm5ShRpgEYo2XO7oHy8zbZIrvOw/exec',deliveryPhone:''};
+  var def={phone:'010-2698-9056',email:'',gasUrl:'https://script.google.com/macros/s/AKfycbwtXJL4_lMynbG4U13PqbnPOiTp15evyw0BPPQ0A9aV5QYlI5dSQB4Ru-8BOqVR9RPq1w/exec',deliveryPhone:''};
   return Object.assign(def,JSON.parse(localStorage.getItem(ADMIN_KEY)||'{}'));
 }
 function saveAdminInfo(){

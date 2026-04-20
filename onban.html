@@ -842,8 +842,20 @@ function renderOrdererPage(){
 // ── SMS 발송 (솔라피 GAS 프록시) ──
 function sendSMS(phone, msg){
   var admin=JSON.parse(localStorage.getItem('onban_admin')||'{}');
-  var gasUrl=admin.gasUrl||'https://script.google.com/macros/s/AKfycbzOmKHKIIQGCUFinZxvOZw0hGAWLZlP54PNefQTRSkrm5ShRpgEYo2XO7oHy8zbZIrvOw/exec';
+  var gasUrl=admin.gasUrl||'https://script.google.com/macros/s/AKfycbwtXJL4_lMynbG4U13PqbnPOiTp15evyw0BPPQ0A9aV5QYlI5dSQB4Ru-8BOqVR9RPq1w/exec';
   var qs='receiver='+encodeURIComponent(phone)+'&msg='+encodeURIComponent(msg);
+  fetch(gasUrl+'?'+qs,{redirect:'follow'}).catch(function(){});
+}
+
+function sendAlimtalk(phone,tplId,vars,fallbackMsg){
+  var admin=JSON.parse(localStorage.getItem('onban_admin')||'{}');
+  var gasUrl=admin.gasUrl||'https://script.google.com/macros/s/AKfycbwtXJL4_lMynbG4U13PqbnPOiTp15evyw0BPPQ0A9aV5QYlI5dSQB4Ru-8BOqVR9RPq1w/exec';
+  if(!gasUrl||!phone)return;
+  var qs='action=alimtalk'
+    +'&receiver='+encodeURIComponent(phone)
+    +'&tplId='+encodeURIComponent(tplId)
+    +'&vars='+encodeURIComponent(JSON.stringify(vars))
+    +'&msg='+encodeURIComponent(fallbackMsg||'');
   fetch(gasUrl+'?'+qs,{redirect:'follow'}).catch(function(){});
 }
 
@@ -867,10 +879,14 @@ function saveOrder(){
   localStorage.setItem('orders',JSON.stringify(orders));
 
   // 고객에게 주문 접수 문자
-  var customerMsg='[오늘의 반찬] '+order.name+'님, 주문이 접수됐습니다! '
-    +order.items.map(function(i){return i.name+' '+i.qty+'개';}).join(', ')
-    +' 합계: '+total.toLocaleString()+'천원. 입금 확인 후 확정 안내 드립니다.';
-  if(order.phone)sendSMS(order.phone, customerMsg);
+    if(order.phone){
+    var menuList=order.items.map(function(i){return i.name+' '+i.qty+'개';}).join(', ');
+    sendAlimtalk(order.phone,
+      'KA01TP260420064728982mRP1sQswzyJ',
+      {'고객명':order.name,'메뉴목록':menuList,'금액':total.toLocaleString()},
+      '[오늘의 반찬] '+order.name+'님, 주문이 접수됐습니다! '+menuList+' 합계: '+total.toLocaleString()+'천원'
+    );
+  }
 
   // 관리자에게 새 주문 알림
   var adminInfo=JSON.parse(localStorage.getItem('onban_admin')||'{}');

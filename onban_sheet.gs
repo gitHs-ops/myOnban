@@ -1,19 +1,8 @@
-// onban_sheet.gs — 오늘의 반찬 구글 시트 연동
-// 배포: 웹앱 / 실행계정: 나 / 액세스: 모든 사용자
-// 재배포: 배포 관리 → 기존 배포 편집 → 새 버전
+// ══════════════════════════════════════════════════════
+// onban_sheet.gs — 구글 시트 연동 (doGet 없음 - sms_proxy4onban.gs에서 통합 관리)
+// ══════════════════════════════════════════════════════
 
 var SHEET_ID = '1_jAZK1zwob2zbiOwKRYzmpKkaswOAi4RUGC043ujiLo';
-
-function doGet(e) {
-  try {
-    var action = (e.parameter.action || '');
-    if (action === 'export_menu') return exportMenu(e);
-    if (action === 'import_menu') return importMenu(e);
-    return json({ success: true, message: 'onban_sheet OK' });
-  } catch(err) {
-    return json({ success: false, error: err.message });
-  }
-}
 
 // ── 메뉴 내보내기 ──
 function exportMenu(e) {
