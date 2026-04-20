@@ -397,7 +397,7 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--text
   <div class="orderer-box">
     <div class="orderer-title">📝 주문자 정보 입력</div>
     <input class="orderer-input" id="ordererName" type="text" placeholder="이름을 입력해주세요 *" maxlength="20">
-    <input class="orderer-input" id="ordererPhone" type="tel" placeholder="연락처 (선택)" maxlength="20">
+    <input class="orderer-input" id="ordererPhone" type="tel" placeholder="연락처 (필수)" maxlength="20">
     <input class="orderer-input" id="ordererAddr" type="text" placeholder="배송 주소 (선택)" maxlength="100">
     <input class="orderer-input" id="ordererMemo" type="text" placeholder="요청사항 (선택)" maxlength="50">
   </div>
@@ -827,6 +827,8 @@ function renderOrdererPage(){
   btn.onclick=function(){
     var name=document.getElementById('ordererName').value.trim();
     if(!name){alert('이름을 입력해주세요.');document.getElementById('ordererName').focus();return;}
+    var phone=document.getElementById('ordererPhone').value.trim();
+    if(!phone){alert('연락처를 입력해주세요.');document.getElementById('ordererPhone').focus();return;}
     ordererInfo={
       name:name,
       phone:document.getElementById('ordererPhone').value.trim(),
