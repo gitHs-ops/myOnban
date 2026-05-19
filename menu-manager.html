@@ -685,7 +685,7 @@ function copyKakao(){
     setTimeout(function(){btn.textContent='텍스트 복사하기';btn.classList.remove('copied');},2000);
   });
 }
-function saveToday(){if(!menus.length){alert('저장할 메뉴가 없어요.');return;}saveMenus(workDate);alert(fmtDate(workDate)+'\n메뉴 창고에 저장되었습니다!');renderHistory();}
+function saveToday(){if(!menus.length){alert('저장할 메뉴가 없어요.');return;}var today=toISO(new Date());saveMenus(today);alert(fmtDate(today)+'\n메뉴 창고에 저장되었습니다!');renderHistory();}
 function renderHistory(){
   var h=JSON.parse(localStorage.getItem('menu_history')||'[]');
   var el=document.getElementById('historyList');
