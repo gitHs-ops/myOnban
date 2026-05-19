@@ -672,6 +672,7 @@ function copyKakao(){
 var _histLoadDate=null;
 function saveToday(){
   if(!menus.length){alert('저장할 메뉴가 없어요.');return;}
+  if(!confirm(fmtDate(workDate)+'\n메뉴 '+menus.length+'종을 창고에 저장할까요?')){return;}
   saveMenus(workDate);
   exportMenuToSheet(workDate,function(ok){
     showToast(fmtDate(workDate)+' 저장'+(ok?' & 시트 동기화 완료!':'완료! (시트 동기화 실패)'));
