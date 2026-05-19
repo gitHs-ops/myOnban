@@ -890,11 +890,26 @@ function saveAddr(addr){
   localStorage.setItem(ADDR_KEY,JSON.stringify(list));
 }
 function showAddrList(){
-  var list=getAddrList();
   var el=document.getElementById('addrListContent');
-  if(!list.length){el.innerHTML='<div style="text-align:center;color:#aaa;padding:20px 0;">저장된 주소가 없어요.<br>주문 시 자동으로 저장됩니다.</div>';}
-  else{el.innerHTML=list.map(function(a){return '<div class="addr-item" onclick="pickAddr(\''+a.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\'">'+a+'</div>';}).join('');}
+  el.innerHTML='<div style="text-align:center;color:#aaa;padding:20px 0;">불러오는 중...</div>';
   document.getElementById('addrListOverlay').classList.add('open');
+  var GAS_URL='https://script.google.com/macros/s/AKfycbwtXJL4_lMynbG4U13PqbnPOiTp15evyw0BPPQ0A9aV5QYlI5dSQB4Ru-8BOqVR9RPq1w/exec';
+  fetch(GAS_URL+'?action=get_addresses',{redirect:'follow'})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var gasList=d.addresses||[];
+      var localList=getAddrList();
+      // 로컬+시트 합치기 (중복 제거)
+      var seen={},merged=[];
+      gasList.concat(localList).forEach(function(a){if(a&&!seen[a]){seen[a]=true;merged.push(a);}});
+      if(!merged.length){el.innerHTML='<div style="text-align:center;color:#aaa;padding:20px 0;">저장된 주소가 없어요.<br>주문 시 자동으로 저장됩니다.</div>';}
+      else{el.innerHTML=merged.map(function(a){return '<div class="addr-item" onclick="pickAddr(\''+a.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\'">'+a+'</div>';}).join('');}
+    })
+    .catch(function(){
+      var list=getAddrList();
+      if(!list.length){el.innerHTML='<div style="text-align:center;color:#aaa;padding:20px 0;">저장된 주소가 없어요.</div>';}
+      else{el.innerHTML=list.map(function(a){return '<div class="addr-item" onclick="pickAddr(\''+a.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\'">'+a+'</div>';}).join('');}
+    });
 }
 function pickAddr(addr){
   document.getElementById('ordererAddr').value=addr;
