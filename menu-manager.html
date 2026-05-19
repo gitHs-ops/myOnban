@@ -372,14 +372,14 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
     <div class="setting-saved" id="settingSaved3">✓ 저장되었습니다</div>
   </div>
   <div class="setting-card">
-    <div class="setting-title">📊 구글 시트 내보내기</div>
-    <p style="font-size:12px;color:#aaa;margin-bottom:14px;">선택한 날짜의 메뉴를 구글 시트 날짜별 탭으로 내보냅니다.</p>
+    <div class="setting-title">📊 메뉴 창고 내보내기</div>
+    <p style="font-size:12px;color:#aaa;margin-bottom:14px;">선택한 날짜의 메뉴를 메뉴 창고에 내보냅니다.</p>
     <div class="setting-row" style="margin-bottom:14px;">
       <span class="setting-label">날짜</span>
       <input class="setting-input" type="date" id="csvFrom">
       <input type="hidden" id="csvTo">
     </div>
-    <button class="btn-setting-save" onclick="exportMenuSheet()" id="btnExport">📊 구글 시트로 내보내기</button>
+    <button class="btn-setting-save" onclick="exportMenuSheet()" id="btnExport">📊 메뉴 창고로 내보내기</button>
     <input type="hidden" id="cfgExportUrl">
     <div id="exportResult" style="font-size:13px;margin-top:10px;display:none;"></div>
   </div>
@@ -692,8 +692,8 @@ function exportMenuToSheet(date,cb){
 function renderHistory(){
   var h=JSON.parse(localStorage.getItem('menu_history')||'[]');
   var el=document.getElementById('historyList');
-  var syncBtn='<button class="parse-btn" style="width:100%;margin-bottom:12px;" onclick="fetchHistoryFromSheet()">☁️ 구글 시트에서 목록 갱신</button>';
-  if(!h.length){el.innerHTML=syncBtn+'<div class="empty">저장된 기록이 없어요.<br>위 버튼으로 구글 시트에서 불러오세요.</div>';return;}
+  var syncBtn='<button class="parse-btn" style="width:100%;margin-bottom:12px;" onclick="fetchHistoryFromSheet()">☁️ 메뉴 창고 목록 갱신</button>';
+  if(!h.length){el.innerHTML=syncBtn+'<div class="empty">저장된 기록이 없어요.<br>위 버튼으로 메뉴 창고에서 불러오세요.</div>';return;}
   var today=toISO(new Date());
   el.innerHTML=syncBtn+h.map(function(e){
     var isToday=e.date===today,isCur=e.date===workDate;
@@ -707,7 +707,7 @@ function renderHistory(){
       meta='메뉴 '+e.menus.length+'종 · 재고 '+st+'개 · 어린이 '+cn+'개';
       prev='<div class="history-preview">'+e.menus.slice(0,5).map(function(m){return'<span class="tag-pill">'+m.name+'</span>';}).join('')+(e.menus.length>5?'<span class="tag-pill">+'+(e.menus.length-5)+'개</span>':'')+'</div>';
     }else{
-      meta='구글 시트에서 불러오기';
+      meta='메뉴 창고에서 불러오기';
     }
     return '<div class="history-item" style="'+border+'" onclick="openHistLoadModal(\''+e.date+'\')"><div class="history-item-header"><div><div class="history-date">'+label+badge+'</div><div class="history-meta">'+meta+'</div></div><span class="arrow">&#8250;</span></div>'+prev+'</div>';
   }).join('');
@@ -715,11 +715,11 @@ function renderHistory(){
 function fetchHistoryFromSheet(){
   var gasUrl=ONBAN_SHEET_URL;
   if(!gasUrl){showToast('GAS URL이 설정되지 않았어요.');return;}
-  showToast('구글 시트에서 목록 불러오는 중...');
+  showToast('메뉴 창고에서 목록 불러오는 중...');
   fetch(gasUrl+'?action=list_dates',{redirect:'follow'})
     .then(function(r){return r.json();})
     .then(function(d){
-      if(!d.dates||!d.dates.length){showToast('구글 시트에 저장된 날짜가 없어요.');return;}
+      if(!d.dates||!d.dates.length){showToast('메뉴 창고에 저장된 날짜가 없어요.');return;}
       var h=JSON.parse(localStorage.getItem('menu_history')||'[]');
       var existing={};h.forEach(function(e){existing[e.date]=true;});
       d.dates.forEach(function(date){if(!existing[date])h.push({date:date,menus:null});});
@@ -747,7 +747,7 @@ function confirmHistLoad(mode){
   importFromSheetByDate(date,mode);
 }
 function importFromSheetByDate(date,mode){
-  showToast('구글 시트에서 불러오는 중...');
+  showToast('메뉴 창고에서 불러오는 중...');
   var csvUrl='https://docs.google.com/spreadsheets/d/'+ONBAN_SHEET_ID+'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent(date);
   fetch(csvUrl)
     .then(function(r){if(!r.ok)throw new Error(date+' 탭을 찾을 수 없습니다. (시트 공유 확인)');return r.text();})
@@ -1304,7 +1304,7 @@ function exportMenuSheet(){
     .then(function(r){return r.json();})
     .then(function(d){
       if(d.success!==false){
-        showToast(from+' '+rows.length+'개 구글 시트 내보내기 완료!');
+        showToast(from+' '+rows.length+'개 메뉴 창고 내보내기 완료!');
       } else {
         showToast('오류: '+(d.error||'실패'));
       }
@@ -1313,7 +1313,7 @@ function exportMenuSheet(){
       showToast(from+' '+rows.length+'개 전송 완료!');
     })
     .finally(function(){
-      btn.disabled=false; btn.textContent='📊 구글 시트로 내보내기';
+      btn.disabled=false; btn.textContent='📊 메뉴 창고로 내보내기';
     });
 }
 
