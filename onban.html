@@ -305,6 +305,13 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--text
 }
 .orderer-input:focus{border-color:var(--teal);}
 .orderer-req{color:var(--red);font-size:12px;margin-left:2px;}
+.addr-wrap{position:relative;margin-bottom:10px;}
+.addr-wrap .orderer-input{margin-bottom:0;padding-right:72px;}
+.btn-addr-list{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:var(--teal);color:#fff;border:none;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.addr-sheet{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:16px 16px 0 0;max-height:55vh;overflow-y:auto;padding:20px 16px 32px;z-index:200;box-shadow:0 -4px 24px rgba(0,0,0,.15);}
+.addr-sheet-title{font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:14px;}
+.addr-item{padding:13px 14px;border-radius:10px;border:1.5px solid #d6efee;margin-bottom:8px;font-size:14px;cursor:pointer;}
+.addr-item:active{background:#e8f5f4;}
 .no-menu span{font-size:48px;display:block;margin-bottom:12px;}
 
 /* ── 주문 항목 요약 박스 ── */
@@ -398,10 +405,21 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--text
     <div class="orderer-title">📝 주문자 정보 입력</div>
     <input class="orderer-input" id="ordererName" type="text" placeholder="이름을 입력해주세요 *" maxlength="20">
     <input class="orderer-input" id="ordererPhone" type="tel" placeholder="연락처 (필수)" maxlength="20">
-    <input class="orderer-input" id="ordererAddr" type="text" placeholder="배송 주소 (선택)" maxlength="100">
+    <div class="addr-wrap">
+      <input class="orderer-input" id="ordererAddr" type="text" placeholder="배송 주소 (선택)" maxlength="100">
+      <button class="btn-addr-list" onclick="showAddrList()">📋 목록</button>
+    </div>
     <input class="orderer-input" id="ordererMemo" type="text" placeholder="요청사항 (선택)" maxlength="50">
   </div>
   <div id="ordererOrderContent"></div>
+</div>
+
+<!-- 배송 주소 목록 시트 -->
+<div class="cal-overlay" id="addrListOverlay" onclick="closeAddrList(event)">
+  <div class="addr-sheet" onclick="event.stopPropagation()">
+    <div class="addr-sheet-title">📋 배송 주소 목록</div>
+    <div id="addrListContent"></div>
+  </div>
 </div>
 
 <!-- ════ 페이지: 주문 확인 ════ -->
@@ -859,6 +877,34 @@ function sendAlimtalk(phone,tplId,vars,fallbackMsg){
   fetch(gasUrl+'?'+qs,{redirect:'follow'}).catch(function(){});
 }
 
+// ── 배송 주소 목록 ──
+var ADDR_KEY='onban_addr_list';
+function getAddrList(){return JSON.parse(localStorage.getItem(ADDR_KEY)||'[]');}
+function saveAddr(addr){
+  if(!addr)return;
+  var list=getAddrList();
+  var idx=list.indexOf(addr);
+  if(idx>=0)list.splice(idx,1);
+  list.unshift(addr);
+  if(list.length>10)list=list.slice(0,10);
+  localStorage.setItem(ADDR_KEY,JSON.stringify(list));
+}
+function showAddrList(){
+  var list=getAddrList();
+  var el=document.getElementById('addrListContent');
+  if(!list.length){el.innerHTML='<div style="text-align:center;color:#aaa;padding:20px 0;">저장된 주소가 없어요.<br>주문 시 자동으로 저장됩니다.</div>';}
+  else{el.innerHTML=list.map(function(a){return '<div class="addr-item" onclick="pickAddr(\''+a.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\'">'+a+'</div>';}).join('');}
+  document.getElementById('addrListOverlay').classList.add('open');
+}
+function pickAddr(addr){
+  document.getElementById('ordererAddr').value=addr;
+  document.getElementById('addrListOverlay').classList.remove('open');
+}
+function closeAddrList(e){
+  if(e.target===document.getElementById('addrListOverlay'))
+    document.getElementById('addrListOverlay').classList.remove('open');
+}
+
 // ── 주문 저장 (localStorage) + SMS 발송 ──
 function saveOrder(){
   var total=orderItems.reduce(function(s,c){return s+c.price*c.qty;},0);
@@ -887,6 +933,9 @@ function saveOrder(){
       '[오늘의 반찬] '+order.name+'님, 주문이 접수됐습니다! '+menuList+' 합계: '+total.toLocaleString()+'천원'
     );
   }
+
+  // 배송 주소 목록 저장
+  saveAddr(order.addr);
 
   // 고객정보 시트 저장
   var GAS_URL='https://script.google.com/macros/s/AKfycbwtXJL4_lMynbG4U13PqbnPOiTp15evyw0BPPQ0A9aV5QYlI5dSQB4Ru-8BOqVR9RPq1w/exec';
