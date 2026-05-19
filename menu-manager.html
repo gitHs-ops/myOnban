@@ -774,9 +774,8 @@ function importFromSheetByDate(date,mode){
         menus=uniq;
         if(dupItems.length)showToast('중복 제외 '+dupItems.length+'개: '+dupItems.join(', '));
       }
-      workDate=date;document.getElementById('dateDisplayBtn').textContent=fmtDate(date);
-      saveMenus(date);renderAll();filterCat='전체';
-      showToast(date+' 메뉴 '+imported.length+'개 가져왔습니다!');
+      saveMenus(workDate);renderAll();filterCat='전체';
+      showToast(date+' 메뉴 '+imported.length+'개 → '+fmtDate(workDate)+' 적용!');
       renderHistory();switchPage('manage');
     })
     .catch(function(e){showToast('❌ '+e.message);});
