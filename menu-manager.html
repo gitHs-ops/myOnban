@@ -652,7 +652,7 @@ function renderMenuList(){
 function renderKakao(){
   var el=document.getElementById('kakaoText');
   if(!menus.length){el.textContent='메뉴를 먼저 입력해주세요.';return;}
-  var dl=new Date(toISO(new Date())+'T00:00:00').toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
+  var dl=new Date(workDate+'T00:00:00').toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
   var cats=[...new Set(menus.map(function(m){return m.cat;}))];
   var lines=[dl+' 메뉴 안내',''];
   cats.forEach(function(cat){
@@ -672,10 +672,9 @@ function copyKakao(){
 var _histLoadDate=null;
 function saveToday(){
   if(!menus.length){alert('저장할 메뉴가 없어요.');return;}
-  var today=toISO(new Date());
-  saveMenus(today);
-  exportMenuToSheet(today,function(ok){
-    showToast(fmtDate(today)+' 저장'+(ok?' & 시트 동기화 완료!':'완료! (시트 동기화 실패)'));
+  saveMenus(workDate);
+  exportMenuToSheet(workDate,function(ok){
+    showToast(fmtDate(workDate)+' 저장'+(ok?' & 시트 동기화 완료!':'완료! (시트 동기화 실패)'));
   });
   renderHistory();
 }
