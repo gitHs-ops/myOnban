@@ -689,13 +689,32 @@ function exportMenuToSheet(date,cb){
   var url=gasUrl+'?action=export_menu&data='+encodeURIComponent(JSON.stringify(slim));
   fetch(url,{redirect:'follow'}).then(function(r){return r.json();}).then(function(d){if(cb)cb(d.success!==false);}).catch(function(){if(cb)cb(false);});
 }
+var _histYM='전체';
 function renderHistory(){
   var h=JSON.parse(localStorage.getItem('menu_history')||'[]');
   var el=document.getElementById('historyList');
   var syncBtn='<button class="parse-btn" style="width:100%;margin-bottom:12px;" onclick="fetchHistoryFromSheet()">☁️ 메뉴 창고 목록 갱신</button>';
   if(!h.length){el.innerHTML=syncBtn+'<div class="empty">저장된 기록이 없어요.<br>위 버튼으로 메뉴 창고에서 불러오세요.</div>';return;}
+
+  // 년월 목록 추출
+  var ymSet={};
+  h.forEach(function(e){var ym=e.date.slice(0,7);ymSet[ym]=true;});
+  var ymList=Object.keys(ymSet).sort().reverse();
+  if(ymList.indexOf(_histYM)<0)_histYM='전체';
+
+  var filterTabs='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">'
+    +['전체'].concat(ymList).map(function(ym){
+      var active=_histYM===ym;
+      var label=ym==='전체'?'전체':(ym.slice(0,4)+'년 '+String(Number(ym.slice(5)))+'월');
+      return '<button onclick="setHistYM(\''+ym+'\')" style="padding:5px 12px;border-radius:999px;font-size:12px;font-weight:600;border:none;cursor:pointer;font-family:inherit;'
+        +(active?'background:#086266;color:#fff;':'background:#e8f5f4;color:#086266;')
+        +'">'+label+'</button>';
+    }).join('')
+    +'</div>';
+
+  var filtered=_histYM==='전체'?h:h.filter(function(e){return e.date.slice(0,7)===_histYM;});
   var today=toISO(new Date());
-  el.innerHTML=syncBtn+h.map(function(e){
+  var items=filtered.map(function(e){
     var isToday=e.date===today,isCur=e.date===workDate;
     var label=new Date(e.date+'T00:00:00').toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
     var border=isCur?'border:2px solid #086266;':'';
@@ -706,12 +725,13 @@ function renderHistory(){
       var cn=e.menus.filter(function(m){return m.child;}).length;
       meta='메뉴 '+e.menus.length+'종 · 재고 '+st+'개 · 어린이 '+cn+'개';
       prev='<div class="history-preview">'+e.menus.slice(0,5).map(function(m){return'<span class="tag-pill">'+m.name+'</span>';}).join('')+(e.menus.length>5?'<span class="tag-pill">+'+(e.menus.length-5)+'개</span>':'')+'</div>';
-    }else{
-      meta='메뉴 창고에서 불러오기';
-    }
+    }else{meta='메뉴 창고에서 불러오기';}
     return '<div class="history-item" style="'+border+'" onclick="openHistLoadModal(\''+e.date+'\')"><div class="history-item-header"><div><div class="history-date">'+label+badge+'</div><div class="history-meta">'+meta+'</div></div><span class="arrow">&#8250;</span></div>'+prev+'</div>';
   }).join('');
+
+  el.innerHTML=syncBtn+filterTabs+(items||'<div class="empty">해당 월에 저장된 기록이 없어요.</div>');
 }
+function setHistYM(ym){_histYM=ym;renderHistory();}
 function fetchHistoryFromSheet(){
   var gasUrl=ONBAN_SHEET_URL;
   if(!gasUrl){showToast('GAS URL이 설정되지 않았어요.');return;}
