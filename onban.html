@@ -305,6 +305,8 @@ body{font-family:"Noto Sans KR",sans-serif;background:var(--bg);color:var(--text
 }
 .orderer-input:focus{border-color:var(--teal);}
 .orderer-req{color:var(--red);font-size:12px;margin-left:2px;}
+.cal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;align-items:flex-end;justify-content:center;}
+.cal-overlay.open{display:flex;}
 .addr-wrap{position:relative;margin-bottom:10px;}
 .addr-wrap .orderer-input{margin-bottom:0;padding-right:72px;}
 .btn-addr-list{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:var(--teal);color:#fff;border:none;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
