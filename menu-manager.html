@@ -1422,7 +1422,7 @@ window.onload=function(){
   (function(){
     var h=JSON.parse(localStorage.getItem('menu_history')||'[]');
     var names=[];
-    h.forEach(function(e){e.menus.forEach(function(m){if(m.name)names.push(m.name);});});
+    h.forEach(function(e){if(e.menus)e.menus.forEach(function(m){if(m.name)names.push(m.name);});});
     if(names.length)saveToDict(names);
   })();
   var _s=getSettings();if(document.getElementById('menuStock'))document.getElementById('menuStock').value=_s.stock;
