@@ -457,7 +457,9 @@ var orderItems=[];
 var ordererInfo={name:'',phone:'',addr:'',memo:''};
 
 function toISO(d){
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  // 한국 시간(UTC+9) 기준으로 날짜 계산
+  var kst=new Date(d.getTime()+9*60*60*1000);
+  return kst.getUTCFullYear()+'-'+String(kst.getUTCMonth()+1).padStart(2,'0')+'-'+String(kst.getUTCDate()).padStart(2,'0');
 }
 function comma(n){return Number(n).toLocaleString();}
 function showToast(msg){
