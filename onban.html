@@ -887,36 +887,27 @@ function saveAddr(addr){
 function showAddrList(){
   var el=document.getElementById('addrListContent');
   el.innerHTML='<div style="text-align:center;color:#aaa;padding:20px 0;">불러오는 중...</div>';
-  document.getElementById('addrSearchInput').value='';
   document.getElementById('addrListOverlay').style.display='flex';
-  window._allCustomers=[];
   fetch(GAS_URL+'?action=get_customers',{redirect:'follow'})
     .then(function(r){return r.json();})
     .then(function(d){
-      window._allCustomers=d.customers||[];
-      filterAddrList();
+      var list=d.customers||[];
+      if(!list.length){
+        el.innerHTML='<div style="text-align:center;color:#aaa;padding:20px 0;">저장된 고객정보가 없어요.</div>';
+        return;
+      }
+      el.innerHTML=list.map(function(c){
+        var ae=c.addr.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        return '<div style="padding:12px 4px;border-bottom:1px solid #f0f0f0;cursor:pointer;" onclick="pickAddr(\''+ae+'\')">'
+          +'<div style="font-size:14px;font-weight:700;color:#1a1a1a;">'+c.name
+          +' <span style="font-size:12px;color:#888;font-weight:400;">'+c.phone+'</span></div>'
+          +'<div style="font-size:13px;color:#444;margin-top:3px;">'+c.addr+'</div>'
+          +'</div>';
+      }).join('');
     })
     .catch(function(){
       el.innerHTML='<div style="text-align:center;color:#aaa;padding:20px 0;">불러오기 실패. 다시 시도해주세요.</div>';
     });
-}
-function filterAddrList(){
-  var el=document.getElementById('addrListContent');
-  var q=(document.getElementById('addrSearchInput').value||'').trim();
-  var list=window._allCustomers||[];
-  var filtered=q?list.filter(function(c){return c.name.indexOf(q)>=0||c.phone.indexOf(q)>=0;}):list;
-  if(!filtered.length){
-    el.innerHTML='<div style="text-align:center;color:#aaa;padding:20px 0;">'+(q?'검색 결과 없음':'저장된 고객정보가 없어요.')+'</div>';
-    return;
-  }
-  el.innerHTML=filtered.map(function(c){
-    var ae=c.addr.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return '<div style="padding:12px 4px;border-bottom:1px solid #f0f0f0;cursor:pointer;" onclick="pickAddr(\''+ae+'\')">'
-      +'<div style="font-size:14px;font-weight:700;color:#1a1a1a;">'+c.name
-      +' <span style="font-size:12px;color:#888;font-weight:400;">'+c.phone+'</span></div>'
-      +'<div style="font-size:13px;color:#444;margin-top:3px;">'+c.addr+'</div>'
-      +'</div>';
-  }).join('');
 }
 function pickAddr(addr){
   document.getElementById('ordererAddr').value=addr;
@@ -1087,12 +1078,10 @@ function goHome(){
 window.onload=function(){loadMenus();};
 </script>
 
-<!-- 배송 주소 검색 모달 -->
+<!-- 배송 주소 목록 모달 -->
 <div id="addrListOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:flex-end;justify-content:center;" onclick="closeAddrList(event)">
   <div style="background:#fff;border-radius:16px 16px 0 0;width:100%;max-height:70vh;overflow-y:auto;padding:20px 16px 32px;" onclick="event.stopPropagation()">
-    <div style="font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:12px;">📋 배송 주소 검색</div>
-    <input id="addrSearchInput" type="text" placeholder="이름 또는 전화번호 입력" oninput="filterAddrList()"
-      style="width:100%;padding:11px 14px;border:1.5px solid #d6efee;border-radius:10px;font-size:15px;font-family:inherit;outline:none;margin-bottom:12px;box-sizing:border-box;">
+    <div style="font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:12px;">📋 배송 주소 목록</div>
     <div id="addrListContent"></div>
   </div>
 </div>
