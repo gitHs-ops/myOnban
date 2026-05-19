@@ -485,7 +485,7 @@ function onMenuNameKey(e){
   }
 }
 
-function toISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function toISO(d){var kst=new Date(d.getTime()+9*60*60*1000);return kst.getUTCFullYear()+'-'+String(kst.getUTCMonth()+1).padStart(2,'0')+'-'+String(kst.getUTCDate()).padStart(2,'0');}
 function fmtDate(iso){var d=new Date(iso+'T00:00:00');var s=d.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'short'});return iso===toISO(new Date())?s+' (오늘)':s;}
 function menuKey(iso){return 'menus_'+iso;}
 function loadMenus(iso){var r=localStorage.getItem(menuKey(iso));menus=r?JSON.parse(r):[];}
