@@ -786,6 +786,9 @@ function switchPage(name){
   var tabs=['manage','kakao','orders','history','settings'];
   var idx=tabs.indexOf(name);
   if(idx>=0)document.querySelectorAll('.nav-tab')[idx].classList.add('active');
+  var dateBtn=document.getElementById('dateDisplayBtn');
+  if(name==='orders'){dateBtn.textContent='오늘 '+new Date().toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});dateBtn.style.opacity='0.6';}
+  else{dateBtn.textContent=fmtDate(workDate);dateBtn.style.opacity='';}
   if(name==='kakao')renderKakao();
   if(name==='history')renderHistory();
   if(name==='orders')renderOrders();
