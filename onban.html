@@ -478,38 +478,37 @@ function goPage(name){
 }
 
 // ── 데이터 로드 ──
+var SHEET_ID='1_jAZK1zwob2zbiOwKRYzmpKkaswOAi4RUGC043ujiLo';
 function loadMenus(){
   var iso=toISO(new Date());
-  var raw=localStorage.getItem('menus_'+iso);
-  var usedIso=iso;
+  var label=new Date(iso+'T00:00:00').toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
+  document.getElementById('dateBanner').textContent='📅 '+label+' 오늘의 메뉴 불러오는 중...';
 
-  // 오늘 데이터 없으면 localStorage 전체에서 menus_ 키 중 가장 최근 날짜 탐색
-  if(!raw){
-    var keys=[];
-    for(var i=0;i<localStorage.length;i++){
-      var k=localStorage.key(i);
-      if(k&&k.indexOf('menus_')===0){
-        var dateStr=k.replace('menus_','');
-        if(/^\d{4}-\d{2}-\d{2}$/.test(dateStr))keys.push(dateStr);
+  var csvUrl='https://docs.google.com/spreadsheets/d/'+SHEET_ID
+    +'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent(iso);
+
+  fetch(csvUrl)
+    .then(function(r){if(!r.ok)throw new Error('no sheet');return r.text();})
+    .then(function(csv){
+      var lines=csv.trim().split('\n');
+      if(lines.length<2)throw new Error('empty');
+      allMenus=[];
+      for(var i=1;i<lines.length;i++){
+        var cols=lines[i].split(',').map(function(c){return c.replace(/^"|"$/g,'').trim();});
+        if(!cols[0])continue;
+        allMenus.push({
+          id:i,name:cols[0],cat:cols[1]||'기타',
+          price:parseInt(cols[2])||0,stock:parseInt(cols[3])||0,
+          child:(cols[4]||'')==='Y',imgUrl:null
+        });
       }
-    }
-    if(keys.length){
-      keys.sort(function(a,b){return b.localeCompare(a);});
-      usedIso=keys[0];
-      raw=localStorage.getItem('menus_'+usedIso);
-    }
-  }
-
-  allMenus=raw?JSON.parse(raw):[];
-
-  var d=new Date(usedIso+'T00:00:00');
-  var isToday=usedIso===iso;
-  var label=d.toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
-  var banner=isToday?('📅 '+label+' 오늘의 메뉴'):('📅 '+label+' 메뉴');
-  document.getElementById('dateBanner').textContent=banner;
-
-  renderCatTabs();
-  renderMenuGrid();
+      document.getElementById('dateBanner').textContent='📅 '+label+' 오늘의 메뉴';
+      renderCatTabs();renderMenuGrid();
+    })
+    .catch(function(){
+      document.getElementById('dateBanner').textContent='📅 '+label+' 준비 중입니다';
+      allMenus=[];renderCatTabs();renderMenuGrid();
+    });
 }
 
 // ── 카테고리 탭 ──
