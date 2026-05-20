@@ -25,6 +25,9 @@ function doGet(e) {
   var receiver = e.parameter.receiver || '';
   var msg      = e.parameter.msg      || '';
 
+  // 날짜 목록 조회
+  if (action === 'list_dates') return listDates();
+
   // 구글 시트 내보내기
   if (action === 'export_menu') return exportMenu(e);
 

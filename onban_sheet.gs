@@ -44,6 +44,16 @@ function exportMenu(e) {
   return json({ success: true, count: data.length, sheets: dates.length });
 }
 
+// ── 날짜 목록 조회 ──
+function listDates() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var dates = ss.getSheets()
+    .map(function(s){ return s.getName(); })
+    .filter(function(n){ return /^\d{4}-\d{2}-\d{2}$/.test(n); })
+    .sort().reverse();
+  return json({ success: true, dates: dates });
+}
+
 // ── 메뉴 가져오기 ──
 function importMenu(e) {
   var date = decodeURIComponent(e.parameter.date || '');
