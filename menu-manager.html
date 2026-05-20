@@ -236,6 +236,9 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
 /* ── 메뉴 편집 팝업 ── */
 .menu-edit-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;}
 .menu-edit-overlay.open{display:flex;}
+#btnSaveFloat{display:none;position:fixed;bottom:0;left:0;right:0;z-index:100;background:#086266;color:#fff;border:none;font-size:16px;font-weight:700;font-family:inherit;padding:16px 0;cursor:pointer;letter-spacing:.5px;}
+#btnSaveFloat:hover{background:#064e52;}
+#btnSaveFloat.visible{display:block;}
 .menu-edit-popup{background:#fff;border-radius:20px;padding:22px;width:360px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2);}
 .edit-divider{border:none;border-top:1px solid #eee;margin:14px 0;}
 .edit-field{margin-bottom:10px;}
@@ -317,6 +320,7 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
     <button class="img-btn-cancel" onclick="saveMenuEditAll()" style="margin-top:2px;">메뉴 저장</button>
   </div>
 </div>
+<button id="btnSaveFloat" onclick="saveToday()">🗄 메뉴 창고로 저장</button>
 <div class="nav-tabs">
   <button class="nav-tab active" onclick="switchPage('manage')"><span class="ti">🍱</span><span class="tl">메뉴 관리</span></button>
   <button class="nav-tab" onclick="switchPage('kakao')"><span class="ti">💬</span><span class="tl">카카오 발송</span></button>
@@ -1010,6 +1014,9 @@ function switchPage(name){
   if(name==='history')renderHistory();
   if(name==='orders')renderOrders();
   if(name==='settings')loadSettingsForm();
+  var fb=document.getElementById('btnSaveFloat');
+  if(name==='manage'){fb.classList.add('visible');document.getElementById('page-manage').style.paddingBottom='60px';}
+  else{fb.classList.remove('visible');document.getElementById('page-manage').style.paddingBottom='';}
 }
 function guessCategory(name){if(/밀키트/.test(name))return '밀키트';if(/김치|깍두기|깻잎|열무|소박이|겉절이|쪽파/.test(name))return '김치';if(/국|탕|찌개|전골|찜|구이|볶음밥|덮밥|스테이크|육전|수육|갈비|삼겹|닭|오리|아구|조개/.test(name))return '메인';if(/조림|무침|볶음|샐러드|나물|장조림|스프|뭇국|미역국/.test(name))return '반찬';return '기타';}
 function parseKakao(){
@@ -1579,7 +1586,7 @@ function importFromSheet(mode){
 }
 
 window.onload=function(){
-  var _goto=localStorage.getItem('mm_goto');if(_goto){localStorage.removeItem('mm_goto');setTimeout(function(){switchPage(_goto);},400);}
+  var _goto=localStorage.getItem('mm_goto');if(_goto){localStorage.removeItem('mm_goto');setTimeout(function(){switchPage(_goto);},400);}else{document.getElementById('btnSaveFloat').classList.add('visible');document.getElementById('page-manage').style.paddingBottom='60px';}
   workDate=toISO(new Date());loadMenus(workDate);
   document.getElementById('dateDisplayBtn').textContent=fmtDate(workDate);
   renderAll();renderHistory();
