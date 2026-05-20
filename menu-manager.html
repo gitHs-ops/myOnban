@@ -108,7 +108,10 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
 .img-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;}
 .img-overlay.open{display:flex;}
 .img-popup{background:#fff;border-radius:20px;padding:22px;width:340px;max-width:93vw;box-shadow:0 8px 32px rgba(0,0,0,.2);}
-.img-popup-title{font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:16px;}
+.img-popup-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.img-popup-title{font-size:15px;font-weight:700;color:#1a1a1a;}
+.img-popup-close{background:none;border:none;font-size:20px;color:#aaa;cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1;font-family:inherit;}
+.img-popup-close:hover{background:#f0f0f0;color:#333;}
 .img-preview-wrap{width:100%;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#f0faf9;border:1.5px dashed #cde8e7;display:flex;align-items:center;justify-content:center;margin-bottom:14px;}
 .img-preview-wrap img{width:100%;height:100%;object-fit:cover;}
 .img-placeholder{text-align:center;color:#aaa;font-size:13px;}
@@ -253,7 +256,10 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
 </div>
 <div class="img-overlay" id="imgOverlay" onclick="closeImgPopup(event)">
   <div class="img-popup" onclick="event.stopPropagation()">
-    <div class="img-popup-title" id="imgPopupTitle">이미지 관리</div>
+    <div class="img-popup-header">
+      <div class="img-popup-title" id="imgPopupTitle">이미지 관리</div>
+      <button class="img-popup-close" onclick="closeImgPopup()" title="닫기">✕</button>
+    </div>
     <div class="img-preview-wrap" id="imgPreviewWrap"><div class="img-placeholder"><span>&#128444;</span>이미지 없음</div></div>
     <div class="img-status" id="imgStatus"></div>
     <input type="file" id="imgFileInput" accept="image/*" style="display:none" onchange="onFileSelected(event)">
@@ -261,7 +267,7 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
       <button class="img-btn-upload" id="imgUploadBtn" onclick="document.getElementById('imgFileInput').click()">&#128193; 사진 선택</button>
       <button class="img-btn-delete" id="imgDeleteBtn" onclick="deleteImg()">삭제</button>
     </div>
-    <button class="img-btn-cancel" onclick="closeImgPopup()">취소</button>
+    <button class="img-btn-cancel" onclick="closeImgPopup()">사진 저장</button>
   </div>
 </div>
 <div class="nav-tabs">
@@ -595,6 +601,7 @@ function openImgPopup(id){
   imgTargetId=id;var m=menus.find(function(x){return x.id===id;});if(!m)return;
   document.getElementById('imgPopupTitle').textContent=m.name+' - 이미지 관리';
   document.getElementById('imgDeleteBtn').style.display=m.imgUrl?'':'none';
+  document.getElementById('imgUploadBtn').textContent=m.imgUrl?'📁 사진 변경':'📁 사진 선택';
   document.getElementById('imgStatus').style.display='none';
   document.getElementById('imgFileInput').value='';
   setImgPreview(m.imgUrl||'');
