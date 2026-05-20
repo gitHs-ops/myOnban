@@ -122,7 +122,8 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
 .img-btn-upload:disabled{opacity:.5;cursor:not-allowed;}
 .img-btn-delete{background:#fff;color:#e05;border:1.5px solid #f5c0c0;border-radius:10px;padding:11px 14px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;}
 .img-btn-delete:hover{background:#fff0f0;}
-.img-btn-cancel{width:100%;background:#f0faf9;color:#086266;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;}
+.img-btn-cancel{width:100%;background:#086266;color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;}
+.img-btn-cancel:disabled{opacity:.35;cursor:not-allowed;}
 .menuname-wrap{position:relative;flex:1;}
 .menuname-wrap input{width:100%;}
 .dup-warn{display:none;font-size:12px;color:#c0392b;background:#fff0f0;border:1px solid #f5c0c0;border-radius:8px;padding:6px 10px;margin-top:6px;}
@@ -267,7 +268,7 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
       <button class="img-btn-upload" id="imgUploadBtn" onclick="document.getElementById('imgFileInput').click()">&#128193; 사진 선택</button>
       <button class="img-btn-delete" id="imgDeleteBtn" onclick="deleteImg()">삭제</button>
     </div>
-    <button class="img-btn-cancel" onclick="closeImgPopup()">사진 저장</button>
+    <button class="img-btn-cancel" id="imgSaveBtn" onclick="saveImg()" disabled>사진 저장</button>
   </div>
 </div>
 <div class="nav-tabs">
@@ -423,7 +424,7 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
 var IMGBB_KEY='b5a6e9481bb9cb4791108cf50761a459';
 var CAT_COLOR={'메인':'#1D9E75','반찬':'#378ADD','김치':'#D4537E','밀키트':'#E9A826','기타':'#888780'};
 var VALID_CATS=['메인','반찬','김치','밀키트','기타'];
-var menus=[],filterCat='전체',workDate='',calViewYear,calViewMonth,imgTargetId=null,parsedMenus=[];
+var menus=[],filterCat='전체',workDate='',calViewYear,calViewMonth,imgTargetId=null,parsedMenus=[],pendingImgUrl=null;
 
 function parseMenuCsv(csvText,defaultStock){
   var lines=csvText.trim().split(/\r?\n/);
@@ -598,16 +599,28 @@ function commitPrice(id){var inp=document.getElementById('pi_'+id);var val=parse
 function cancelPrice(id){var m=menus.find(function(x){return x.id===id;});var inp=document.getElementById('pi_'+id);var disp=document.getElementById('pd_'+id);if(inp&&m)inp.value=m.price||0;if(disp)disp.style.display='';if(inp)inp.style.display='none';}
 
 function openImgPopup(id){
-  imgTargetId=id;var m=menus.find(function(x){return x.id===id;});if(!m)return;
+  imgTargetId=id;pendingImgUrl=null;
+  var m=menus.find(function(x){return x.id===id;});if(!m)return;
   document.getElementById('imgPopupTitle').textContent=m.name+' - 이미지 관리';
   document.getElementById('imgDeleteBtn').style.display=m.imgUrl?'':'none';
   document.getElementById('imgUploadBtn').textContent=m.imgUrl?'📁 사진 변경':'📁 사진 선택';
+  document.getElementById('imgSaveBtn').disabled=true;
   document.getElementById('imgStatus').style.display='none';
   document.getElementById('imgFileInput').value='';
   setImgPreview(m.imgUrl||'');
   document.getElementById('imgOverlay').classList.add('open');
 }
-function closeImgPopup(e){if(e&&e.target!==document.getElementById('imgOverlay'))return;document.getElementById('imgOverlay').classList.remove('open');imgTargetId=null;}
+function closeImgPopup(e){if(e&&e.target!==document.getElementById('imgOverlay'))return;document.getElementById('imgOverlay').classList.remove('open');imgTargetId=null;pendingImgUrl=null;}
+function saveImg(){
+  if(!pendingImgUrl||imgTargetId===null)return;
+  var m=menus.find(function(x){return x.id===imgTargetId;});
+  if(m){m.imgUrl=pendingImgUrl;save();renderMenuList();}
+  pendingImgUrl=null;
+  document.getElementById('imgSaveBtn').disabled=true;
+  document.getElementById('imgUploadBtn').textContent='📁 사진 변경';
+  document.getElementById('imgDeleteBtn').style.display='';
+  setImgStatus('사진이 저장되었습니다!',false);
+}
 function setImgPreview(url){
   var w=document.getElementById('imgPreviewWrap');
   if(url){var img=document.createElement('img');img.src=url;img.alt='미리보기';img.onerror=function(){w.innerHTML='<div class="img-placeholder"><span>&#9888;</span>불러올 수 없어요</div>';};w.innerHTML='';w.appendChild(img);}
@@ -644,12 +657,10 @@ function uploadToImgBB(b64){
         var data=JSON.parse(xhr.responseText);
         if(data.success){
           var url=data.data.url;
-          var m=menus.find(function(x){return x.id===imgTargetId;});
-          if(m){m.imgUrl=url;save();renderMenuList();}
+          pendingImgUrl=url;
           setImgPreview(url);
-          document.getElementById('imgDeleteBtn').style.display='';
-          setImgStatus('업로드 완료!',false);
-          setTimeout(function(){document.getElementById('imgOverlay').classList.remove('open');imgTargetId=null;},900);
+          setImgStatus('업로드 완료! 사진 저장을 눌러 적용하세요.',false);
+          document.getElementById('imgSaveBtn').disabled=false;
         }else{
           var msg=data.error&&data.error.message?data.error.message:'알 수 없는 오류';
           setImgStatus('업로드 실패: '+msg,false);
