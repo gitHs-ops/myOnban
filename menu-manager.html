@@ -369,11 +369,6 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
     </div>
     <button class="copy-btn" id="copyBtn" onclick="copyKakao()">텍스트 복사하기</button>
   </div>
-  <div class="card">
-    <div class="card-title">메뉴 창고 저장</div>
-    <p style="font-size:13px;color:#666;margin-bottom:14px;">저장하면 메뉴 창고에서 다시 불러볼 수 있어요.</p>
-    <button class="btn btn-add" onclick="saveToday()">메뉴 창고에 저장</button>
-  </div>
 </div>
 <div id="page-settings" class="page">
   <div class="setting-card">
@@ -487,7 +482,7 @@ function parseMenuCsv(csvText,defaultStock){
     var cat=VALID_CATS.indexOf(cols[1])>=0?cols[1]:'기타';
     var price=parseInt(cols[2]);if(isNaN(price)||price<0)price=0;
     var stock=parseInt(cols[3]);if(isNaN(stock)||stock<0)stock=defaultStock;
-    imported.push({id:Date.now()+Math.random(),name:cols[0],cat:cat,price:price,stock:stock,child:(cols[4]||'')==='Y',imgUrl:null});
+    imported.push({id:Date.now()+Math.random(),name:cols[0],cat:cat,price:price,stock:stock,child:(cols[4]||'')==='Y',imgUrl:(cols[5]&&cols[5]!=='')?cols[5]:null});
   }
   if(!imported.length)throw new Error('가져올 메뉴가 없습니다.');
   return imported;
@@ -1015,7 +1010,7 @@ function switchPage(name){
   if(name==='orders')renderOrders();
   if(name==='settings')loadSettingsForm();
   var fb=document.getElementById('btnSaveFloat');
-  if(name==='manage'){fb.classList.add('visible');document.getElementById('page-manage').style.paddingBottom='60px';}
+  if(name==='manage'||name==='kakao'){fb.classList.add('visible');document.getElementById('page-manage').style.paddingBottom='60px';}
   else{fb.classList.remove('visible');document.getElementById('page-manage').style.paddingBottom='';}
 }
 function guessCategory(name){if(/밀키트/.test(name))return '밀키트';if(/김치|깍두기|깻잎|열무|소박이|겉절이|쪽파/.test(name))return '김치';if(/국|탕|찌개|전골|찜|구이|볶음밥|덮밥|스테이크|육전|수육|갈비|삼겹|닭|오리|아구|조개/.test(name))return '메인';if(/조림|무침|볶음|샐러드|나물|장조림|스프|뭇국|미역국/.test(name))return '반찬';return '기타';}
