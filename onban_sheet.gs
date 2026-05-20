@@ -18,7 +18,7 @@ function exportMenu(e) {
     byDate[d].push(m);
   });
 
-  var headers = ['메뉴명', '카테고리', '금액(천원)', '재고', '어린이가능'];
+  var headers = ['메뉴명', '카테고리', '금액(천원)', '재고', '어린이가능', '사진URL'];
   var dates   = Object.keys(byDate).sort();
 
   dates.forEach(function(date) {
@@ -34,8 +34,8 @@ function exportMenu(e) {
           .setHorizontalAlignment('center');
     sheet.setFrozenRows(1);
     var rows = byDate[date].map(function(m) {
-      if (Array.isArray(m)) return [m[1], m[2], m[3], m[4], m[5] ? 'Y' : 'N'];
-      return [m.name||'', m.cat||'', m.price||0, m.stock||0, m.child ? 'Y' : 'N'];
+      if (Array.isArray(m)) return [m[1], m[2], m[3], m[4], m[5] ? 'Y' : 'N', m[6] || ''];
+      return [m.name||'', m.cat||'', m.price||0, m.stock||0, m.child ? 'Y' : 'N', m.imgUrl||''];
     });
     sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
     sheet.autoResizeColumns(1, headers.length);
@@ -61,11 +61,12 @@ function importMenu(e) {
     var r = rows[i];
     if (!r[0]) continue;
     menus.push({
-      name:  String(r[0] || ''),
-      cat:   String(r[1] || '기타'),
-      price: Number(r[2]) || 0,
-      stock: Number(r[3]) || 0,
-      child: String(r[4]) === 'Y'
+      name:   String(r[0] || ''),
+      cat:    String(r[1] || '기타'),
+      price:  Number(r[2]) || 0,
+      stock:  Number(r[3]) || 0,
+      child:  String(r[4]) === 'Y',
+      imgUrl: String(r[5] || '') || null
     });
   }
   return json({ success: true, date: date, menus: menus });

@@ -416,7 +416,44 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
 <script>
 var IMGBB_KEY='b5a6e9481bb9cb4791108cf50761a459';
 var CAT_COLOR={'메인':'#1D9E75','반찬':'#378ADD','김치':'#D4537E','밀키트':'#E9A826','기타':'#888780'};
+var VALID_CATS=['메인','반찬','김치','밀키트','기타'];
 var menus=[],filterCat='전체',workDate='',calViewYear,calViewMonth,imgTargetId=null,parsedMenus=[];
+
+function parseMenuCsv(csvText,defaultStock){
+  var lines=csvText.trim().split(/\r?\n/);
+  if(lines.length<2)throw new Error('데이터가 없습니다.');
+  var imported=[];
+  for(var i=1;i<lines.length;i++){
+    var cols=lines[i].split(',').map(function(c){return c.replace(/^"|"$/g,'').trim();});
+    if(!cols[0])continue;
+    if(cols.length<3)continue;
+    var cat=VALID_CATS.indexOf(cols[1])>=0?cols[1]:'기타';
+    var price=parseInt(cols[2]);if(isNaN(price)||price<0)price=0;
+    var stock=parseInt(cols[3]);if(isNaN(stock)||stock<0)stock=defaultStock;
+    imported.push({id:Date.now()+Math.random(),name:cols[0],cat:cat,price:price,stock:stock,child:(cols[4]||'')==='Y',imgUrl:null});
+  }
+  if(!imported.length)throw new Error('가져올 메뉴가 없습니다.');
+  return imported;
+}
+
+function applyImportedMenus(imported,mode){
+  var addedCount;
+  if(mode==='add'){
+    var existNames={};menus.forEach(function(m){existNames[m.name.trim()]=true;});
+    var newItems=[],dupItems=[];
+    imported.forEach(function(m){if(existNames[m.name.trim()])dupItems.push(m.name);else newItems.push(m);});
+    menus=menus.concat(newItems);
+    addedCount=newItems.length;
+    if(dupItems.length)showToast('중복 제외 '+dupItems.length+'개: '+dupItems.join(', '));
+  }else{
+    var seen={},uniq=[],dupItems=[];
+    imported.forEach(function(m){if(seen[m.name.trim()])dupItems.push(m.name);else{seen[m.name.trim()]=true;uniq.push(m);}});
+    menus=uniq;
+    addedCount=uniq.length;
+    if(dupItems.length)showToast('중복 제외 '+dupItems.length+'개: '+dupItems.join(', '));
+  }
+  return addedCount;
+}
 
 // ── 메뉴명 사전 ──
 var DICT_KEY='menu_name_dict';
@@ -684,7 +721,7 @@ function exportMenuToSheet(date,cb){
   if(!gasUrl){if(cb)cb(false);return;}
   var stored=localStorage.getItem('menus_'+date);
   var ms=stored?JSON.parse(stored):menus;
-  var slim=ms.map(function(m){return[date,m.name,m.cat,m.price,m.stock,m.child?1:0];});
+  var slim=ms.map(function(m){return[date,m.name,m.cat,m.price,m.stock,m.child?1:0,m.imgUrl||''];});
   if(!slim.length){if(cb)cb(false);return;}
   var url=gasUrl+'?action=export_menu&data='+encodeURIComponent(JSON.stringify(slim));
   fetch(url,{redirect:'follow'}).then(function(r){return r.json();}).then(function(d){if(cb)cb(d.success!==false);}).catch(function(){if(cb)cb(false);});
@@ -772,30 +809,10 @@ function importFromSheetByDate(date,mode){
   fetch(csvUrl)
     .then(function(r){if(!r.ok)throw new Error(date+' 탭을 찾을 수 없습니다. (시트 공유 확인)');return r.text();})
     .then(function(csv){
-      var lines=csv.trim().split('\n');
-      if(lines.length<2)throw new Error('데이터가 없습니다.');
-      var stock=getSettings().stock;
-      var imported=[];
-      for(var i=1;i<lines.length;i++){
-        var cols=lines[i].split(',').map(function(c){return c.replace(/^"|"$/g,'').trim();});
-        if(!cols[0])continue;
-        imported.push({id:Date.now()+Math.random(),name:cols[0]||'',cat:cols[1]||'기타',price:parseInt(cols[2])||0,stock:parseInt(cols[3])||stock,child:(cols[4]||'')==='Y',imgUrl:null});
-      }
-      if(!imported.length)throw new Error('가져올 메뉴가 없습니다.');
-      if(mode==='add'){
-        var existNames={};menus.forEach(function(m){existNames[m.name.trim()]=true;});
-        var newItems=[],dupItems=[];
-        imported.forEach(function(m){if(existNames[m.name.trim()])dupItems.push(m.name);else newItems.push(m);});
-        menus=menus.concat(newItems);
-        if(dupItems.length)showToast('중복 제외 '+dupItems.length+'개: '+dupItems.join(', '));
-      }else{
-        var seen={},uniq=[],dupItems=[];
-        imported.forEach(function(m){if(seen[m.name.trim()])dupItems.push(m.name);else{seen[m.name.trim()]=true;uniq.push(m);}});
-        menus=uniq;
-        if(dupItems.length)showToast('중복 제외 '+dupItems.length+'개: '+dupItems.join(', '));
-      }
+      var imported=parseMenuCsv(csv,getSettings().stock);
+      var addedCount=applyImportedMenus(imported,mode);
       saveMenus(workDate);renderAll();filterCat='전체';
-      showToast(date+' 메뉴 '+imported.length+'개 → '+fmtDate(workDate)+' 적용!');
+      showToast(date+' 메뉴 '+addedCount+'개 → '+fmtDate(workDate)+' 적용!');
       renderHistory();switchPage('manage');
     })
     .catch(function(e){showToast('❌ '+e.message);});
@@ -1314,7 +1331,7 @@ function exportMenuSheet(){
 
   // slim 배열 변환
   var slim=rows.map(function(m){
-    return [m.date,m.name,m.cat,m.price,m.stock,m.child?1:0];
+    return [m.date,m.name,m.cat,m.price,m.stock,m.child?1:0,m.imgUrl||''];
   });
   var url=gasUrl+'?action=export_menu&data='+encodeURIComponent(JSON.stringify(slim));
 
@@ -1348,8 +1365,6 @@ function importFromSheet(mode){
   res.style.color='#086266';
   res.textContent='불러오는 중...';
 
-  // 구글 시트 공개 CSV URL (시트 탭 이름으로 접근)
-  // 시트가 공개(뷰어 공유)되어 있어야 함
   var csvUrl='https://docs.google.com/spreadsheets/d/'+ONBAN_SHEET_ID
     +'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent(date);
 
@@ -1359,52 +1374,24 @@ function importFromSheet(mode){
       return r.text();
     })
     .then(function(csv){
-      var lines=csv.trim().split('\n');
-      if(lines.length<2)throw new Error('데이터가 없습니다.');
-      // 헤더 제거, CSV 파싱 (큰따옴표 제거)
-      var stock=getSettings().stock;
-      var imported=[];
-      for(var i=1;i<lines.length;i++){
-        var cols=lines[i].split(',').map(function(c){return c.replace(/^"|"$/g,'').trim();});
-        if(!cols[0])continue;
-        imported.push({
-          id:Date.now()+Math.random(),
-          name:cols[0]||'',
-          cat:cols[1]||'기타',
-          price:parseInt(cols[2])||0,
-          stock:parseInt(cols[3])||stock,
-          child:(cols[4]||'')==='Y',
-          imgUrl:null
-        });
-      }
-      if(!imported.length)throw new Error('가져올 메뉴가 없습니다.');
+      var imported=parseMenuCsv(csv,getSettings().stock);
+      var confirmMsg;
       if(mode==='add'){
-        // 추가: 현재 목록과 중복 제거
-        var existNames={};
-        menus.forEach(function(m){existNames[m.name.trim()]=true;});
-        var newItems=[],dupItems=[];
-        imported.forEach(function(m){
-          if(existNames[m.name.trim()])dupItems.push(m.name);
-          else newItems.push(m);
-        });
-        if(!confirm(newItems.length+'개 메뉴를 현재 목록에 추가할까요?'+(dupItems.length?' (중복 제외 '+dupItems.length+'개)':''))){return;}
-        menus=menus.concat(newItems);
-        if(dupItems.length)showToast('중복 제외 '+dupItems.length+'개: '+dupItems.join(', '));
-      } else {
-        // 대체: imported 내부 중복 제거
-        var seen={},uniq=[],dupItems=[];
-        imported.forEach(function(m){
-          if(seen[m.name.trim()])dupItems.push(m.name);
-          else{seen[m.name.trim()]=true;uniq.push(m);}
-        });
-        if(!confirm(uniq.length+'개 메뉴로 현재 목록을 대체할까요?'+(dupItems.length?' (중복 제외 '+dupItems.length+'개)':''))){return;}
-        menus=uniq;
-        if(dupItems.length)showToast('중복 제외 '+dupItems.length+'개: '+dupItems.join(', '));
+        var existNames={};menus.forEach(function(m){existNames[m.name.trim()]=true;});
+        var newCount=imported.filter(function(m){return!existNames[m.name.trim()];}).length;
+        var dupCount=imported.length-newCount;
+        confirmMsg=newCount+'개 메뉴를 현재 목록에 추가할까요?'+(dupCount?' (중복 제외 '+dupCount+'개)':'');
+      }else{
+        var seen={},uniqCount=0,dupCount=0;
+        imported.forEach(function(m){if(seen[m.name.trim()])dupCount++;else{seen[m.name.trim()]=true;uniqCount++;}});
+        confirmMsg=uniqCount+'개 메뉴로 현재 목록을 대체할까요?'+(dupCount?' (중복 제외 '+dupCount+'개)':'');
       }
-      save(); renderAll();
+      if(!confirm(confirmMsg))return;
+      var addedCount=applyImportedMenus(imported,mode);
+      save();renderAll();
       res.style.color='#1D9E75';
-      res.textContent='✅ '+imported.length+'개 가져오기 완료!';
-      showToast(date+' 메뉴 '+imported.length+'개 가져왔습니다!');
+      res.textContent='✅ '+addedCount+'개 가져오기 완료!';
+      showToast(date+' 메뉴 '+addedCount+'개 가져왔습니다!');
       setTimeout(function(){switchPage('manage');},800);
     })
     .catch(function(e){
