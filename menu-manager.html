@@ -410,7 +410,7 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
         <input class="setting-input" type="text" id="newBankAccount" placeholder="예) 110-123-456789">
       </div>
       <div style="display:flex;gap:8px;margin-top:4px;width:100%;box-sizing:border-box;">
-        <button class="btn-setting-save" style="flex:1;" onclick="addBank()">추가</button>
+        <button class="btn-setting-save" id="bankFormBtn" style="flex:1;" onclick="addBank()">추가</button>
         <button class="btn-setting-save" style="flex:0 0 64px;background:#aaa;" onclick="toggleBankForm()">취소</button>
       </div>
     </div>
@@ -1377,10 +1377,9 @@ function saveAdminInfo(){
     deliveryPhone:document.getElementById('cfgDeliveryPhone').value.trim()
   };
   localStorage.setItem(ADMIN_KEY,JSON.stringify(s));
-  syncSettingsToSheet(function(){
-    var el=document.getElementById('settingSaved3');el.style.display='block';
-    setTimeout(function(){el.style.display='none';},2000);
-  });
+  var el=document.getElementById('settingSaved3');el.style.display='block';
+  setTimeout(function(){el.style.display='none';},2000);
+  syncSettingsToSheet(null);
 }
 function getBanks(){
   var def=[{name:'국민은행',holder:'김현철',account:'118210210117',primary:true}];
@@ -1402,14 +1401,27 @@ function saveSettings(){
   });
 }
 
+var _editBankIdx=-1;
 function toggleBankForm(){
   var f=document.getElementById('bankForm');
   f.style.display=f.style.display==='block'?'none':'block';
   if(f.style.display==='block'){
+    _editBankIdx=-1;
     document.getElementById('newBankName').value='';
     document.getElementById('newBankHolder').value='';
     document.getElementById('newBankAccount').value='';
+    document.getElementById('bankFormBtn').textContent='추가';
   }
+}
+function editBank(i){
+  var banks=getBanks();
+  var b=banks[i];
+  _editBankIdx=i;
+  document.getElementById('newBankName').value=b.name;
+  document.getElementById('newBankHolder').value=b.holder;
+  document.getElementById('newBankAccount').value=b.account;
+  document.getElementById('bankFormBtn').textContent='수정';
+  document.getElementById('bankForm').style.display='block';
 }
 
 function addBank(){
@@ -1418,7 +1430,11 @@ function addBank(){
   var account=document.getElementById('newBankAccount').value.trim();
   if(!name||!holder||!account){alert('모든 항목을 입력해주세요.');return;}
   var banks=getBanks();
-  banks.push({name:name,holder:holder,account:account,primary:banks.length===0});
+  if(_editBankIdx>=0){
+    banks[_editBankIdx]=Object.assign(banks[_editBankIdx],{name:name,holder:holder,account:account});
+  }else{
+    banks.push({name:name,holder:holder,account:account,primary:banks.length===0});
+  }
   saveBanks(banks);
   toggleBankForm();
   renderBankList();
@@ -1465,12 +1481,18 @@ function renderBankList(){
     btnP.className='btn-bank-primary'+(b.primary?' on':'');
     btnP.textContent=b.primary?'대표':'대표설정';
     btnP.onclick=(function(idx){return function(){setPrimary(idx);};})(i);
+    var btnE=document.createElement('button');
+    btnE.className='btn-bank-primary';
+    btnE.textContent='✏';
+    btnE.title='편집';
+    btnE.onclick=(function(idx){return function(){editBank(idx);};})(i);
     var btnD=document.createElement('button');
     btnD.className='btn-bank-del';
     btnD.textContent='✕';
     btnD.onclick=(function(idx){return function(){deleteBank(idx);};})(i);
     item.appendChild(info);
     if(!b.primary)item.appendChild(btnP);
+    item.appendChild(btnE);
     item.appendChild(btnD);
     el.appendChild(item);
   });
