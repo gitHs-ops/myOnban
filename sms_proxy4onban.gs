@@ -32,6 +32,10 @@ function doGet(e) {
   if (action === 'save_settings') return saveSettings(e);
   if (action === 'load_settings') return loadSettings();
 
+  // 전체 메뉴 저장/로드
+  if (action === 'export_all_menus') return exportAllMenus(e);
+  if (action === 'import_all_menus') return importAllMenus();
+
   // 구글 시트 내보내기
   if (action === 'export_menu') return exportMenu(e);
 

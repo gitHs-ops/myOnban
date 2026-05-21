@@ -81,6 +81,43 @@ function importMenu(e) {
   return json({ success: true, date: date, menus: menus });
 }
 
+// ── 전체 메뉴 내보내기 ──
+function exportAllMenus(e) {
+  var raw  = decodeURIComponent(e.parameter.data || '[]');
+  var data = JSON.parse(raw);
+  var ss   = SpreadsheetApp.openById(SHEET_ID);
+  var SNAME = '등록된모든메뉴';
+  var sheet = ss.getSheetByName(SNAME);
+  if (!sheet) sheet = ss.insertSheet(SNAME);
+  sheet.clearContents(); sheet.clearFormats();
+  var headers = ['메뉴명','카테고리','금액(천원)','재고','어린이가능','사진URL','등록횟수'];
+  sheet.appendRow(headers);
+  sheet.getRange(1,1,1,headers.length).setFontWeight('bold').setBackground('#086266').setFontColor('#ffffff').setHorizontalAlignment('center');
+  sheet.setFrozenRows(1);
+  var rows = data.map(function(m){
+    return [m.name||'',m.cat||'기타',m.price||0,m.stock||0,m.child?'Y':'N',m.imgUrl||'',m.count||0];
+  });
+  if (rows.length) sheet.getRange(2,1,rows.length,headers.length).setValues(rows);
+  sheet.autoResizeColumns(1,headers.length);
+  return json({ success: true, count: rows.length });
+}
+
+// ── 전체 메뉴 가져오기 ──
+function importAllMenus() {
+  var ss    = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName('등록된모든메뉴');
+  if (!sheet) return json({ success: false, error: '시트 없음' });
+  var rows = sheet.getDataRange().getValues();
+  if (rows.length < 2) return json({ success: false, error: '데이터 없음' });
+  var menus = [];
+  for (var i = 1; i < rows.length; i++) {
+    var r = rows[i]; if (!r[0]) continue;
+    menus.push({ name:String(r[0]||''), cat:String(r[1]||'기타'), price:Number(r[2])||0,
+      stock:Number(r[3])||0, child:String(r[4])==='Y', imgUrl:String(r[5]||'')||null, count:Number(r[6])||0 });
+  }
+  return json({ success: true, menus: menus });
+}
+
 // ── 설정 저장 ──
 function saveSettings(e) {
   var raw  = decodeURIComponent(e.parameter.data || '{}');
