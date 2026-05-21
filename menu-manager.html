@@ -1452,18 +1452,12 @@ function renderBankList(){
 }
 
 function loadSettingsForm(){
-  // CSV 날짜 기본값: 이번달 1일 ~ 오늘
-  var today=toISO(new Date());
-  document.getElementById('csvFrom').value=today;
-  document.getElementById('csvTo').value=today;
   var s=getSettings();
   document.getElementById('cfgStock').value=s.stock;
   var a=getAdminInfo();
   document.getElementById('cfgAdminPhone').value=a.phone;
   document.getElementById('cfgAdminEmail').value=a.email;
   document.getElementById('cfgDeliveryPhone').value=a.deliveryPhone||'';
-  var eu=localStorage.getItem('onban_export_url')||'';
-  document.getElementById('cfgExportUrl').value=eu;
   renderBankList();
 }
 
