@@ -596,16 +596,28 @@ function removeFromDict(name){
   if(idx>=0){dict.splice(idx,1);localStorage.setItem(DICT_KEY,JSON.stringify(dict));}
 }
 // ▾ 버튼 — 전체 목록 토글
+// ── allMenus 기반으로 자동완성 사전 전체 재빌드 ──
+function syncDictFromAllMenus(){
+  loadAllMenus(); // localStorage 최신 반영
+  var names=allMenus.map(function(m){return m.name;}).filter(Boolean).map(function(n){return n.trim();});
+  menus.forEach(function(m){if(m.name&&names.indexOf(m.name.trim())<0)names.push(m.name.trim());});
+  names.sort(function(a,b){return a.localeCompare(b,'ko',{numeric:true});});
+  localStorage.setItem(DICT_KEY,JSON.stringify(names));
+}
+function acNames(){
+  loadAllMenus(); // 항상 최신 로드
+  var names=allMenus.map(function(m){return m.name.trim();}).filter(Boolean);
+  menus.forEach(function(m){if(m.name&&names.indexOf(m.name.trim())<0)names.push(m.name.trim());});
+  names.sort(function(a,b){return a.localeCompare(b,'ko',{numeric:true});});
+  return names;
+}
 function toggleAcAll(e){
   if(e)e.preventDefault();
   var list=document.getElementById('acList');
   if(list.classList.contains('open')){closeAcList();return;}
-  var dict=getDict().slice();
-  allMenus.forEach(function(m){if(m.name&&dict.indexOf(m.name.trim())<0)dict.push(m.name.trim());});
-  menus.forEach(function(m){if(m.name&&dict.indexOf(m.name.trim())<0)dict.push(m.name.trim());});
-  dict.sort(function(a,b){return a.localeCompare(b,'ko',{numeric:true});});
+  var names=acNames();
   acIndex=-1;
-  list.innerHTML=dict.map(function(n){
+  list.innerHTML=names.map(function(n){
     return '<div class="ac-item" data-val="'+n.replace(/"/g,'&quot;')+'" onmousedown="pickAc(this)">'+n+'</div>';
   }).join('');
   list.classList.add('open');
@@ -616,12 +628,8 @@ function renderAcList(){
   var inp=document.getElementById('menuName');
   var q=(inp.value||'').trim();
   var list=document.getElementById('acList');
-  // 사전 + 현재 메뉴 목록 합치기
-  var dict=getDict();
-  menus.forEach(function(m){if(m.name&&dict.indexOf(m.name.trim())<0)dict.push(m.name.trim());});
-  allMenus.forEach(function(m){if(m.name&&dict.indexOf(m.name.trim())<0)dict.push(m.name.trim());});
-  dict.sort(function(a,b){return a.localeCompare(b,'ko',{numeric:true});});
-  var filtered=q?dict.filter(function(n){return n.toLowerCase().indexOf(q.toLowerCase())>=0;}):dict;
+  var names=acNames();
+  var filtered=q?names.filter(function(n){return n.toLowerCase().indexOf(q.toLowerCase())>=0;}):names;
   if(!filtered.length){list.classList.remove('open');return;}
   acIndex=-1;
   list.innerHTML=filtered.map(function(n){
@@ -636,6 +644,13 @@ function pickAc(el){
   document.getElementById('acList').classList.remove('open');
   acIndex=-1;
   checkDup(val);
+  // 메뉴창고 데이터 자동 반영 (가격·카테고리·어린이)
+  var ref=allMenus.find(function(m){return m.name.trim()===val.trim();});
+  if(ref){
+    if(ref.price)document.getElementById('menuPrice').value=ref.price;
+    if(ref.cat)document.getElementById('menuCat').value=ref.cat;
+    document.getElementById('menuChild').checked=!!ref.child;
+  }
   document.getElementById('menuPrice').focus();
 }
 function closeAcList(){document.getElementById('acList').classList.remove('open');acIndex=-1;}
@@ -931,9 +946,14 @@ function saveMenuEditAll(){
   m.child=document.getElementById('editMenuChild').checked;
   touch(m);
   _save(editCtx);
-  // 이름 변경 시 dict 갱신
-  if(oldName!==m.name){removeFromDict(oldName);saveToDict([m.name]);}
-  if(editCtx==='menus')renderAll();else{renderAllMenus();syncAllMenuToMenus(m,oldName);}
+  if(editCtx==='menus'){
+    if(oldName!==m.name){removeFromDict(oldName);saveToDict([m.name]);}
+    renderAll();
+  }else{
+    renderAllMenus();
+    syncDictFromAllMenus(); // allMenus 전체 기준으로 dict 완전 재빌드
+    syncAllMenuToMenus(m,oldName);
+  }
   document.getElementById('menuEditOverlay').classList.remove('open');
   menuEditTargetId=null;editPendingImgUrl=null;
   showToast('메뉴가 수정되었습니다.');
