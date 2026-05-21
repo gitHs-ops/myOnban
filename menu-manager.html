@@ -1040,8 +1040,8 @@ function renderAllMenus(){
     '</div>';
   }).join('')+
   '<div style="margin-top:16px;display:flex;gap:8px;">'+
-  '<button class="btn btn-add" style="flex:1;background:#1D9E75;font-size:12px;padding:10px 8px;" onclick="openSendToTodayPopup()">📤 선택 메뉴를 일일 메뉴로 보내기</button>'+
-  '<button class="btn btn-add" style="flex:0 0 auto;font-size:12px;padding:10px 10px;white-space:nowrap;" onclick="exportAllMenusToSheet()">🗄 메뉴 창고로 저장</button>'+
+  '<button class="btn btn-add" style="flex:1;background:#1D9E75;font-size:13px;padding:11px 6px;display:flex;align-items:center;justify-content:center;gap:5px;" onclick="openSendToTodayPopup()"><span style="font-size:16px;">📤</span>일일 메뉴로 보내기</button>'+
+  '<button class="btn btn-add" style="flex:1;font-size:13px;padding:11px 6px;display:flex;align-items:center;justify-content:center;gap:5px;" onclick="exportAllMenusToSheet()"><span style="font-size:16px;">🗄</span>메뉴 창고로 저장</button>'+
   '</div>';
 }
 function toggleAllSel(cb){
@@ -1083,6 +1083,7 @@ function confirmSendToToday(mode){
     showToast(added?added+'개를 일일 메뉴에 추가했어요!':'이미 추가된 메뉴예요.');
   }
   save();
+  renderAll();
   selectedAllIds.clear();
   closeSendToTodayPopup();
 }
