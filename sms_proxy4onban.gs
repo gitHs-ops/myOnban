@@ -19,6 +19,17 @@ var TPL_CONFIRM   = 'KA01TP260420064826771YwlmOoWlKMa'; // 배송확정
 var TPL_DELIVERED = 'KA01TP260420064907492eIPbycJK6Mk'; // 배송완료
 var TPL_CANCEL    = 'KA01TP260420064944290l6Rv4uFM5yE'; // 주문취소
 
+// ── POST 진입점 (대용량 데이터) ──────────────────────
+function doPost(e) {
+  var action = e.parameter.action || '';
+  var body = {};
+  try { body = JSON.parse((e.postData && e.postData.contents) || '{}'); } catch(ex) {}
+  if (action === 'export_menu')      return exportMenu(null, body.data || []);
+  if (action === 'export_all_menus') return exportAllMenus(null, body.data || []);
+  if (action === 'save_settings')    return saveSettings(null, body.data || {});
+  return json({ success: false, error: '알 수 없는 POST 액션' });
+}
+
 // ── GET 진입점 ──────────────────────────────────────
 function doGet(e) {
   var action   = e.parameter.action   || 'sms';

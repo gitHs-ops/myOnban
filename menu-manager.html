@@ -925,8 +925,7 @@ function exportMenuToSheet(date,cb){
   var ms=stored?JSON.parse(stored):menus;
   var slim=ms.map(function(m){return[date,m.name,m.cat,m.price,m.stock,m.child?1:0,m.imgUrl||''];});
   if(!slim.length){if(cb)cb(false);return;}
-  var url=gasUrl+'?action=export_menu&data='+encodeURIComponent(JSON.stringify(slim));
-  gasFetch(url,function(err,d){if(cb)cb(!err&&d&&d.success!==false);});
+  gasFetchPost(gasUrl+'?action=export_menu',{data:slim},function(err,d){if(cb)cb(!err&&d&&d.success!==false);});
 }
 var _histYM='전체';
 function renderHistSubTabs(){
@@ -958,7 +957,7 @@ function exportAllMenusToSheet(){
   var gasUrl=ONBAN_SHEET_URL;if(!gasUrl){showToast('GAS URL 없음');return;}
   if(!allMenus.length){showToast('저장할 메뉴가 없어요.');return;}
   showToast('메뉴 창고로 저장 중...');
-  gasFetch(gasUrl+'?action=export_all_menus&data='+encodeURIComponent(JSON.stringify(allMenus)),function(err,d){
+  gasFetchPost(gasUrl+'?action=export_all_menus',{data:allMenus},function(err,d){
     showToast(err||!d||!d.success?'저장 실패':'전체 메뉴 '+allMenus.length+'개 저장 완료!');
   });
 }
@@ -1432,6 +1431,15 @@ function getAdminInfo(){
   return Object.assign(def,JSON.parse(localStorage.getItem(ADMIN_KEY)||'{}'));
 }
 // ── 설정 → 구글 시트 동기화 ──
+// ── GAS POST fetch 유틸 (대용량 데이터용) ──
+function gasFetchPost(url,body,cb){
+  var ctrl=new AbortController();
+  var timer=setTimeout(function(){ctrl.abort();},30000);
+  fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),redirect:'follow',signal:ctrl.signal})
+    .then(function(r){clearTimeout(timer);return r.json();})
+    .then(function(d){cb(null,d);})
+    .catch(function(e){clearTimeout(timer);cb(e,null);});
+}
 // ── GAS fetch 공통 유틸 (타임아웃 15초 + 1회 재시도) ──
 function gasFetch(url,cb){
   function attempt(retry){
@@ -1453,7 +1461,7 @@ function syncSettingsToSheet(cb){
   var gasUrl=ONBAN_SHEET_URL;if(!gasUrl){if(cb)cb(false);return;}
   var s=getSettings(),a=getAdminInfo(),b=getBanks();
   var data={stock:s.stock,phone:a.phone,email:a.email,deliveryPhone:a.deliveryPhone||'',banks:b};
-  gasFetch(gasUrl+'?action=save_settings&data='+encodeURIComponent(JSON.stringify(data)),function(err,d){
+  gasFetchPost(gasUrl+'?action=save_settings',{data:data},function(err,d){
     if(cb)cb(!err&&d&&d.success!==false);
   });
 }

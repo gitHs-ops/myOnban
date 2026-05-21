@@ -4,9 +4,8 @@
 var SHEET_ID = '1_jAZK1zwob2zbiOwKRYzmpKkaswOAi4RUGC043ujiLo';
 
 // ── 메뉴 내보내기 ──
-function exportMenu(e) {
-  var raw  = decodeURIComponent(e.parameter.data || '[]');
-  var data = JSON.parse(raw);
+function exportMenu(e, dataOverride) {
+  var data = dataOverride || JSON.parse(decodeURIComponent(e.parameter.data || '[]'));
   if (!data.length) return json({ success: false, error: '데이터 없음' });
 
   var ss = SpreadsheetApp.openById(SHEET_ID);
@@ -82,9 +81,8 @@ function importMenu(e) {
 }
 
 // ── 전체 메뉴 내보내기 ──
-function exportAllMenus(e) {
-  var raw  = decodeURIComponent(e.parameter.data || '[]');
-  var data = JSON.parse(raw);
+function exportAllMenus(e, dataOverride) {
+  var data = dataOverride || JSON.parse(decodeURIComponent((e&&e.parameter&&e.parameter.data)||'[]'));
   var ss   = SpreadsheetApp.openById(SHEET_ID);
   var SNAME = '등록된모든메뉴';
   var sheet = ss.getSheetByName(SNAME);
@@ -119,9 +117,8 @@ function importAllMenus() {
 }
 
 // ── 설정 저장 ──
-function saveSettings(e) {
-  var raw  = decodeURIComponent(e.parameter.data || '{}');
-  var data = JSON.parse(raw);
+function saveSettings(e, dataOverride) {
+  var data = dataOverride || JSON.parse(decodeURIComponent((e&&e.parameter&&e.parameter.data)||'{}'));
   var ss   = SpreadsheetApp.openById(SHEET_ID);
   var sheet = ss.getSheetByName('settings');
   if (!sheet) sheet = ss.insertSheet('settings');
