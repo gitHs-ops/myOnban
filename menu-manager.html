@@ -24,8 +24,10 @@ body{font-family:"Noto Sans KR",sans-serif;background:linear-gradient(to bottom,
 .input-row input:focus{border-color:#086266;}
 .input-row input[type="text"]{flex:1;}
 .input-row input[type="number"]{flex:1;text-align:center;}
-#menuPrice{flex:1.2;}
-#menuStock{flex:0.8;}
+.num-field{display:flex;align-items:center;gap:5px;}
+.num-field label{font-size:13px;color:#555;white-space:nowrap;font-weight:600;}
+.num-field input[type="number"]{width:56px;padding:10px 6px;text-align:center;border:1.5px solid #cde8e7;border-radius:10px;font-size:14px;font-family:inherit;outline:none;}
+.num-field input[type="number"]:focus{border-color:#086266;}
 select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px;font-size:14px;font-family:inherit;outline:none;color:#333;}
 .child-toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:#555;margin-bottom:12px;cursor:pointer;user-select:none;}
 .child-toggle input{accent-color:#f9a826;width:16px;height:16px;}
@@ -350,8 +352,8 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
 </div>
 <div class="dup-warn" id="dupWarn">&#9888; 이미 오늘 목록에 있는 메뉴예요!</div>
     <div class="input-row">
-      <input type="number" id="menuPrice" placeholder="금액 (천원)" min="1">
-      <input type="number" id="menuStock" placeholder="재고 (개)" min="0" value="0">
+      <div class="num-field"><label for="menuPrice">금액(천원)</label><input type="number" id="menuPrice" min="1"></div>
+      <div class="num-field"><label for="menuStock">재고(개)</label><input type="number" id="menuStock" min="0" value="0"></div>
     </div>
     <label class="child-toggle"><input type="checkbox" id="menuChild"> 어린이도 먹을 수 있는 메뉴</label>
     <button class="btn btn-add" onclick="addMenu()">추 가</button>
