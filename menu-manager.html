@@ -900,7 +900,7 @@ function exportMenuToSheet(date,cb){
   var slim=ms.map(function(m){return[date,m.name,m.cat,m.price,m.stock,m.child?1:0,m.imgUrl||''];});
   if(!slim.length){if(cb)cb(false);return;}
   var url=gasUrl+'?action=export_menu&data='+encodeURIComponent(JSON.stringify(slim));
-  fetch(url,{redirect:'follow'}).then(function(r){return r.json();}).then(function(d){if(cb)cb(d.success!==false);}).catch(function(){if(cb)cb(false);});
+  gasFetch(url,function(err,d){if(cb)cb(!err&&d&&d.success!==false);});
 }
 var _histYM='전체';
 function renderHistory(){
@@ -949,19 +949,16 @@ function fetchHistoryFromSheet(){
   var gasUrl=ONBAN_SHEET_URL;
   if(!gasUrl){showToast('GAS URL이 설정되지 않았어요.');return;}
   showToast('메뉴 창고에서 목록 불러오는 중...');
-  fetch(gasUrl+'?action=list_dates',{redirect:'follow'})
-    .then(function(r){return r.json();})
-    .then(function(d){
-      if(!d.dates||!d.dates.length){showToast('메뉴 창고에 저장된 날짜가 없어요.');return;}
-      var h=JSON.parse(localStorage.getItem('menu_history')||'[]');
-      var existing={};h.forEach(function(e){existing[e.date]=true;});
-      d.dates.forEach(function(date){if(!existing[date])h.push({date:date,menus:null});});
-      h.sort(function(a,b){return b.date.localeCompare(a.date);});
-      localStorage.setItem('menu_history',JSON.stringify(h));
-      renderHistory();
-      showToast(d.dates.length+'개 날짜 갱신 완료!');
-    })
-    .catch(function(){showToast('목록 불러오기 실패. 시트 URL을 확인해주세요.');});
+  gasFetch(gasUrl+'?action=list_dates',function(err,d){
+    if(err||!d||!d.dates||!d.dates.length){showToast(err?'목록 불러오기 실패. 재시도해주세요.':'메뉴 창고에 저장된 날짜가 없어요.');return;}
+    var h=JSON.parse(localStorage.getItem('menu_history')||'[]');
+    var existing={};h.forEach(function(e){existing[e.date]=true;});
+    d.dates.forEach(function(date){if(!existing[date])h.push({date:date,menus:null});});
+    h.sort(function(a,b){return b.date.localeCompare(a.date);});
+    localStorage.setItem('menu_history',JSON.stringify(h));
+    renderHistory();
+    showToast(d.dates.length+'개 날짜 갱신 완료!');
+  });
 }
 function openHistLoadModal(date){
   _histLoadDate=date;
@@ -1347,27 +1344,43 @@ function getAdminInfo(){
   return Object.assign(def,JSON.parse(localStorage.getItem(ADMIN_KEY)||'{}'));
 }
 // ── 설정 → 구글 시트 동기화 ──
+// ── GAS fetch 공통 유틸 (타임아웃 15초 + 1회 재시도) ──
+function gasFetch(url,cb){
+  function attempt(retry){
+    var ctrl=new AbortController();
+    var timer=setTimeout(function(){ctrl.abort();},15000);
+    fetch(url,{redirect:'follow',signal:ctrl.signal})
+      .then(function(r){clearTimeout(timer);return r.json();})
+      .then(function(d){cb(null,d);})
+      .catch(function(e){
+        clearTimeout(timer);
+        if(retry>0){setTimeout(function(){attempt(retry-1);},2000);}
+        else{cb(e,null);}
+      });
+  }
+  attempt(1);
+}
+
 function syncSettingsToSheet(cb){
   var gasUrl=ONBAN_SHEET_URL;if(!gasUrl){if(cb)cb(false);return;}
   var s=getSettings(),a=getAdminInfo(),b=getBanks();
   var data={stock:s.stock,phone:a.phone,email:a.email,deliveryPhone:a.deliveryPhone||'',banks:b};
-  fetch(gasUrl+'?action=save_settings&data='+encodeURIComponent(JSON.stringify(data)),{redirect:'follow'})
-    .then(function(r){return r.json();}).then(function(d){if(cb)cb(d.success!==false);}).catch(function(){if(cb)cb(false);});
+  gasFetch(gasUrl+'?action=save_settings&data='+encodeURIComponent(JSON.stringify(data)),function(err,d){
+    if(cb)cb(!err&&d&&d.success!==false);
+  });
 }
 // ── 구글 시트 → 설정 로드 ──
 function loadSettingsFromSheet(cb){
   var gasUrl=ONBAN_SHEET_URL;if(!gasUrl){if(cb)cb(false);return;}
-  fetch(gasUrl+'?action=load_settings',{redirect:'follow'})
-    .then(function(r){return r.json();}
-    ).then(function(d){
-      if(d.success&&d.data){
-        var data=d.data;
-        if(data.stock!==undefined)localStorage.setItem(SETTINGS_KEY,JSON.stringify({stock:Number(data.stock)||0}));
-        localStorage.setItem(ADMIN_KEY,JSON.stringify({phone:data.phone||'',email:data.email||'',deliveryPhone:data.deliveryPhone||''}));
-        if(data.banks&&Array.isArray(data.banks))localStorage.setItem(BANKS_KEY,JSON.stringify(data.banks));
-        if(cb)cb(true);
-      }else{if(cb)cb(false);}
-    }).catch(function(){if(cb)cb(false);});
+  gasFetch(gasUrl+'?action=load_settings',function(err,d){
+    if(!err&&d&&d.success&&d.data){
+      var data=d.data;
+      if(data.stock!==undefined)localStorage.setItem(SETTINGS_KEY,JSON.stringify({stock:Number(data.stock)||0}));
+      localStorage.setItem(ADMIN_KEY,JSON.stringify({phone:data.phone||'',email:data.email||'',deliveryPhone:data.deliveryPhone||''}));
+      if(data.banks&&Array.isArray(data.banks))localStorage.setItem(BANKS_KEY,JSON.stringify(data.banks));
+      if(cb)cb(true);
+    }else{if(cb)cb(false);}
+  });
 }
 
 function saveAdminInfo(){
