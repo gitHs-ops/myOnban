@@ -516,6 +516,7 @@ function rebuildAllMenusFromHistory(){
 }
 function mergeToAllMenus(){
   if(!allMenus.length)loadAllMenus();
+  allMenus=deduplicateByName(allMenus); // 혹시 남아있는 중복 정리
   var nameMap={};allMenus.forEach(function(m){nameMap[m.name]=m;});
   var changed=false;
   menus.forEach(function(m){
@@ -1067,12 +1068,24 @@ function cancelSaveAll(){
 function confirmSaveAll(){
   document.getElementById('saveAllOverlay').classList.remove('open');
   var gasUrl=ONBAN_SHEET_URL;
+  var deduped=deduplicateByName(allMenus);
+  if(deduped.length<allMenus.length){allMenus=deduped;saveAllMenus();}
   showToast('메뉴 창고로 저장 중...');
   gasFetchPost(gasUrl+'?action=export_all_menus',{data:allMenus},function(err,d){
     showToast(err||!d||!d.success?'저장 실패':'전체 메뉴 '+allMenus.length+'개 저장 완료!');
     document.querySelectorAll('.menu-cb').forEach(function(cb){cb.checked=false;});
     selectedAllIds.clear();
     updateAllMenuBtns();
+  });
+}
+function deduplicateByName(arr){
+  var seen={};
+  return arr.filter(function(m){
+    if(!m.name)return false;
+    var k=m.name.trim().toLowerCase();
+    if(seen[k])return false;
+    seen[k]=true;
+    return true;
   });
 }
 function importAllMenusFromSheet(cb){
@@ -1082,7 +1095,7 @@ function importAllMenusFromSheet(cb){
     var gasMenus=[];
     if(!err&&d&&d.success&&d.menus&&d.menus.length){
       d.menus.forEach(function(m){if(!m.id)m.id=Date.now()+Math.random();});
-      gasMenus=d.menus;
+      gasMenus=deduplicateByName(d.menus); // GAS 시트 중복 제거
     }
     // ── 로컬 allMenus vs GAS: 타임스탬프 비교 머지 ──
     var gasMap={}; // lowerName → index
@@ -1124,7 +1137,7 @@ function importAllMenusFromSheet(cb){
         }
       });
     });
-    if(gasMenus.length){allMenus=gasMenus;saveAllMenus();}
+    if(gasMenus.length){allMenus=deduplicateByName(gasMenus);saveAllMenus();}
     if(cb)cb();
   });
 }
