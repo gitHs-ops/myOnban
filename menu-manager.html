@@ -325,7 +325,7 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
   <button class="nav-tab active" onclick="switchPage('manage')"><span class="ti">🍱</span><span class="tl">메뉴 관리</span></button>
   <button class="nav-tab" onclick="switchPage('kakao')"><span class="ti">💬</span><span class="tl">카카오 발송</span></button>
   <button class="nav-tab" onclick="switchPage('orders')"><span class="ti">📦</span><span class="tl">주문 관리</span></button>
-  <button class="nav-tab" onclick="switchPage('history')"><span class="ti">🗄</span><span class="tl">날짜별 메뉴 묶음</span></button>
+  <button class="nav-tab" onclick="switchPage('history')"><span class="ti">🗄</span><span class="tl">메뉴 창고</span></button>
   <button class="nav-tab" onclick="switchPage('settings')"><span class="ti">⚙</span><span class="tl">설정</span></button>
 </div>
 <div id="page-manage" class="page active">
@@ -446,8 +446,9 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
 
 <div id="page-history" class="page">
   <div class="card">
-    <div class="card-title">날짜별 메뉴 묶음</div>
+    <div class="tabs" id="histSubTabs" style="margin-bottom:12px;"></div>
     <div id="historyList"></div>
+    <div id="allMenuList" style="display:none;"></div>
   </div>
 </div>
 
@@ -882,7 +883,7 @@ function copyKakao(){
     setTimeout(function(){btn.textContent='텍스트 복사하기';btn.classList.remove('copied');},2000);
   });
 }
-var _histLoadDate=null;
+var _histLoadDate=null,_histSubTab='dates';
 function saveToday(){
   if(!menus.length){alert('저장할 메뉴가 없어요.');return;}
   if(!confirm(fmtDate(workDate)+'\n메뉴 '+menus.length+'종을 창고에 저장할까요?')){return;}
@@ -903,10 +904,58 @@ function exportMenuToSheet(date,cb){
   gasFetch(url,function(err,d){if(cb)cb(!err&&d&&d.success!==false);});
 }
 var _histYM='전체';
+function renderHistSubTabs(){
+  var tabs=[{id:'dates',label:'날짜별 메뉴 묶음'},{id:'all',label:'등록된 모든 메뉴'}];
+  document.getElementById('histSubTabs').innerHTML=tabs.map(function(t){
+    return '<button class="tab'+(_histSubTab===t.id?' active':'')+'" onclick="switchHistSubTab(\''+t.id+'\')">'+t.label+'</button>';
+  }).join('');
+}
+function switchHistSubTab(tab){
+  _histSubTab=tab;
+  renderHistSubTabs();
+  if(tab==='dates'){
+    document.getElementById('historyList').style.display='';
+    document.getElementById('allMenuList').style.display='none';
+    renderHistory();
+  }else{
+    document.getElementById('historyList').style.display='none';
+    document.getElementById('allMenuList').style.display='';
+    renderAllMenus();
+  }
+}
+function renderAllMenus(){
+  var h=JSON.parse(localStorage.getItem('menu_history')||'[]');
+  var el=document.getElementById('allMenuList');
+  var map={};
+  h.forEach(function(e){
+    if(!e.menus)return;
+    e.menus.forEach(function(m){
+      if(!m.name)return;
+      if(!map[m.name]){map[m.name]={name:m.name,cat:m.cat,price:m.price,child:m.child,imgUrl:m.imgUrl,count:0};}
+      map[m.name].count++;
+      map[m.name].price=m.price; // 가장 최근 가격 유지
+      if(m.imgUrl)map[m.name].imgUrl=m.imgUrl;
+    });
+  });
+  var list=Object.values(map).sort(function(a,b){return b.count-a.count;});
+  if(!list.length){el.innerHTML='<div class="empty">등록된 메뉴가 없어요.</div>';return;}
+  el.innerHTML=list.map(function(m){
+    var dot='<div class="cat-dot" style="background:'+(CAT_COLOR[m.cat]||'#888')+'"></div>';
+    var img=m.imgUrl?'<img class="menu-thumb" src="'+m.imgUrl+'" alt="'+m.name+'" onerror="this.style.display=\'none\'">':'';
+    var ch=m.child?' <span style="font-size:13px;">&#128103;</span>':'';
+    var cnt='<span style="font-size:11px;color:#aaa;margin-left:4px;">'+m.count+'회</span>';
+    return '<div class="menu-item">'+dot+img
+      +'<div class="name" style="flex:1;">'+m.name+ch+cnt+'</div>'
+      +'<div class="price-wrap"><span class="price-display">'+(m.price||0).toLocaleString()+'천원</span></div>'
+      +'</div>';
+  }).join('');
+}
 function renderHistory(){
+  renderHistSubTabs();
+  if(_histSubTab==='all'){renderAllMenus();return;}
   var h=JSON.parse(localStorage.getItem('menu_history')||'[]');
   var el=document.getElementById('historyList');
-  var syncBtn='<button class="parse-btn" style="width:100%;margin-bottom:12px;" onclick="fetchHistoryFromSheet()">☁️ 메뉴 창고에서 메뉴 묶음 불러오기</button>';
+  var syncBtn='<button class="parse-btn" style="width:100%;margin-bottom:12px;" onclick="fetchHistoryFromSheet()">☁️ 메뉴 창고에서 불러오기</button>';
   if(!h.length){el.innerHTML=syncBtn+'<div class="empty">저장된 기록이 없어요.<br>위 버튼으로 메뉴 창고에서 불러오세요.</div>';return;}
 
   // 년월 목록 추출
