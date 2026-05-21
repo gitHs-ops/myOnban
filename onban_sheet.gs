@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════
-// onban_sheet.gs — 구글 시트 연동 2026 05 21// ══════════════════════════════════════════════════════
+// onban_sheet.gs — 구글 시트 연동 2026 05 21 v2// ══════════════════════════════════════════════════════
 
 var SHEET_ID = '1_jAZK1zwob2zbiOwKRYzmpKkaswOAi4RUGC043ujiLo';
 
@@ -88,12 +88,12 @@ function exportAllMenus(e, dataOverride) {
   var sheet = ss.getSheetByName(SNAME);
   if (!sheet) sheet = ss.insertSheet(SNAME);
   sheet.clearContents(); sheet.clearFormats();
-  var headers = ['메뉴명','카테고리','금액(천원)','재고','어린이가능','사진URL','등록횟수'];
+  var headers = ['메뉴명','카테고리','금액(천원)','재고','어린이가능','사진URL','등록횟수','수정시각(ms)'];
   sheet.appendRow(headers);
   sheet.getRange(1,1,1,headers.length).setFontWeight('bold').setBackground('#086266').setFontColor('#ffffff').setHorizontalAlignment('center');
   sheet.setFrozenRows(1);
   var rows = data.map(function(m){
-    return [m.name||'',m.cat||'기타',m.price||0,m.stock||0,m.child?'Y':'N',m.imgUrl||'',m.count||0];
+    return [m.name||'',m.cat||'기타',m.price||0,m.stock||0,m.child?'Y':'N',m.imgUrl||'',m.count||0,m.updatedAt||0];
   });
   if (rows.length) sheet.getRange(2,1,rows.length,headers.length).setValues(rows);
   sheet.autoResizeColumns(1,headers.length);
@@ -111,7 +111,8 @@ function importAllMenus() {
   for (var i = 1; i < rows.length; i++) {
     var r = rows[i]; if (!r[0]) continue;
     menus.push({ name:String(r[0]||''), cat:String(r[1]||'기타'), price:Number(r[2])||0,
-      stock:Number(r[3])||0, child:String(r[4])==='Y', imgUrl:String(r[5]||'')||null, count:Number(r[6])||0 });
+      stock:Number(r[3])||0, child:String(r[4])==='Y', imgUrl:String(r[5]||'')||null,
+      count:Number(r[6])||0, updatedAt:Number(r[7])||0 });
   }
   return json({ success: true, menus: menus });
 }
