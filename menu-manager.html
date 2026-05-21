@@ -24,7 +24,8 @@ body{font-family:"Noto Sans KR",sans-serif;background:linear-gradient(to bottom,
 .input-row input:focus{border-color:#086266;}
 .input-row input[type="text"]{flex:1;}
 .input-row input[type="number"]{flex:1;text-align:center;}
-#menuPrice{flex:0 0 100px;min-width:0;}
+#menuPrice{flex:1.2;}
+#menuStock{flex:0.8;}
 select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px;font-size:14px;font-family:inherit;outline:none;color:#333;}
 .child-toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:#555;margin-bottom:12px;cursor:pointer;user-select:none;}
 .child-toggle input{accent-color:#f9a826;width:16px;height:16px;}
@@ -1838,9 +1839,11 @@ function renderBankList(){
     btnP.textContent=b.primary?'대표':'대표설정';
     btnP.onclick=(function(idx){return function(){setPrimary(idx);};})(i);
     var btnE=document.createElement('button');
-    btnE.className='btn-bank-primary';
-    btnE.textContent='✏';
+    btnE.className='btn-bank-del';
+    btnE.innerHTML='✏️';
     btnE.title='편집';
+    btnE.style.fontSize='15px';
+    btnE.style.color='#aaa';
     btnE.onclick=(function(idx){return function(){editBank(idx);};})(i);
     var btnD=document.createElement('button');
     btnD.className='btn-bank-del';
