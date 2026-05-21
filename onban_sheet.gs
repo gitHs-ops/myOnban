@@ -1,6 +1,5 @@
 // ══════════════════════════════════════════════════════
-// onban_sheet.gs — 구글 시트 연동 (doGet 없음 - sms_proxy4onban.gs에서 통합 관리)
-// ══════════════════════════════════════════════════════
+// onban_sheet.gs — 구글 시트 연동// ══════════════════════════════════════════════════════
 
 var SHEET_ID = '1_jAZK1zwob2zbiOwKRYzmpKkaswOAi4RUGC043ujiLo';
 
@@ -80,6 +79,38 @@ function importMenu(e) {
     });
   }
   return json({ success: true, date: date, menus: menus });
+}
+
+// ── 설정 저장 ──
+function saveSettings(e) {
+  var raw  = decodeURIComponent(e.parameter.data || '{}');
+  var data = JSON.parse(raw);
+  var ss   = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName('settings');
+  if (!sheet) sheet = ss.insertSheet('settings');
+  sheet.clearContents();
+  sheet.appendRow(['key', 'value']);
+  Object.keys(data).forEach(function(k) {
+    var v = (typeof data[k] === 'object') ? JSON.stringify(data[k]) : String(data[k]);
+    sheet.appendRow([k, v]);
+  });
+  return json({ success: true });
+}
+
+// ── 설정 로드 ──
+function loadSettings() {
+  var ss    = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName('settings');
+  if (!sheet) return json({ success: false, error: '설정 없음' });
+  var rows = sheet.getDataRange().getValues();
+  if (rows.length < 2) return json({ success: false, error: '설정 없음' });
+  var data = {};
+  for (var i = 1; i < rows.length; i++) {
+    var k = rows[i][0], v = rows[i][1];
+    if (!k) continue;
+    try { data[k] = JSON.parse(v); } catch(ex) { data[k] = v; }
+  }
+  return json({ success: true, data: data });
 }
 
 function json(obj) {

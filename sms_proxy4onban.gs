@@ -28,6 +28,10 @@ function doGet(e) {
   // 날짜 목록 조회
   if (action === 'list_dates') return listDates();
 
+  // 설정 저장/로드
+  if (action === 'save_settings') return saveSettings(e);
+  if (action === 'load_settings') return loadSettings();
+
   // 구글 시트 내보내기
   if (action === 'export_menu') return exportMenu(e);
 
