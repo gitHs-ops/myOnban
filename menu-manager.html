@@ -606,8 +606,9 @@ function syncDictFromAllMenus(){
 }
 function acNames(){
   loadAllMenus(); // 항상 최신 로드
-  var names=allMenus.map(function(m){return m.name.trim();}).filter(Boolean);
-  menus.forEach(function(m){if(m.name&&names.indexOf(m.name.trim())<0)names.push(m.name.trim());});
+  var cat=(document.getElementById('menuCat')||{}).value||'';
+  var names=allMenus.filter(function(m){return !cat||m.cat===cat;}).map(function(m){return m.name.trim();}).filter(Boolean);
+  menus.forEach(function(m){if(m.name&&(!cat||m.cat===cat)&&names.indexOf(m.name.trim())<0)names.push(m.name.trim());});
   names.sort(function(a,b){return a.localeCompare(b,'ko',{numeric:true});});
   return names;
 }
