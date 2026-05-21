@@ -604,19 +604,21 @@ function syncDictFromAllMenus(){
   names.sort(function(a,b){return a.localeCompare(b,'ko',{numeric:true});});
   localStorage.setItem(DICT_KEY,JSON.stringify(names));
 }
-function acNames(){
+// useCat=true: 카테고리 필터 적용(타이핑용), false: 전체(▾버튼용)
+function acNames(useCat){
   loadAllMenus(); // 항상 최신 로드
-  var cat=(document.getElementById('menuCat')||{}).value||'';
+  var cat=useCat?((document.getElementById('menuCat')||{}).value||''):'';
   var names=allMenus.filter(function(m){return !cat||m.cat===cat;}).map(function(m){return m.name.trim();}).filter(Boolean);
   menus.forEach(function(m){if(m.name&&(!cat||m.cat===cat)&&names.indexOf(m.name.trim())<0)names.push(m.name.trim());});
   names.sort(function(a,b){return a.localeCompare(b,'ko',{numeric:true});});
   return names;
 }
+// ▾ 버튼: 카테고리 무관 전체 표시 → 수정된 메뉴 어떤 카테고리든 항상 보임
 function toggleAcAll(e){
   if(e)e.preventDefault();
   var list=document.getElementById('acList');
   if(list.classList.contains('open')){closeAcList();return;}
-  var names=acNames();
+  var names=acNames(false);
   acIndex=-1;
   list.innerHTML=names.map(function(n){
     return '<div class="ac-item" data-val="'+n.replace(/"/g,'&quot;')+'" onmousedown="pickAc(this)">'+n+'</div>';
@@ -625,11 +627,12 @@ function toggleAcAll(e){
 }
 var acIndex=-1;
 function renderDatalist(){renderAcList();}  // 하위호환 유지
+// 타이핑: 선택된 카테고리로 필터링
 function renderAcList(){
   var inp=document.getElementById('menuName');
   var q=(inp.value||'').trim();
   var list=document.getElementById('acList');
-  var names=acNames();
+  var names=acNames(true);
   var filtered=q?names.filter(function(n){return n.toLowerCase().indexOf(q.toLowerCase())>=0;}):names;
   if(!filtered.length){list.classList.remove('open');return;}
   acIndex=-1;
