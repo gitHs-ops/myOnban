@@ -339,21 +339,24 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
   <div class="card">
     <div class="card-title">일일 메뉴 추가 등록</div>
     <div class="input-row">
-  <div class="menuname-wrap">
-    <input type="text" id="menuName" placeholder="메뉴명 입력" autocomplete="off"
-      oninput="onMenuNameInput()" onkeydown="onMenuNameKey(event)">
-    <button type="button" class="ac-toggle" onmousedown="toggleAcAll(event)" tabindex="-1">▾</button>
-    <div class="ac-list" id="acList"></div>
-  </div>
   <select id="menuCat" style="width:auto;flex:0 0 80px;">
     <option value="메인">메인</option><option value="반찬">반찬</option>
     <option value="김치">김치</option><option value="밀키트">밀키트</option><option value="기타">기타</option>
   </select>
+  <div class="num-field" style="flex:1;">
+    <label for="menuName" style="white-space:nowrap;">메뉴명</label>
+    <div class="menuname-wrap">
+      <input type="text" id="menuName" placeholder="입력" autocomplete="off"
+        oninput="onMenuNameInput()" onkeydown="onMenuNameKey(event)">
+      <button type="button" class="ac-toggle" onmousedown="toggleAcAll(event)" tabindex="-1">▾</button>
+      <div class="ac-list" id="acList"></div>
+    </div>
+  </div>
 </div>
 <div class="dup-warn" id="dupWarn">&#9888; 이미 오늘 목록에 있는 메뉴예요!</div>
     <div class="input-row">
-      <div class="num-field"><label for="menuPrice">금액(천원)</label><input type="number" id="menuPrice" min="1"></div>
-      <div class="num-field"><label for="menuStock">재고(개)</label><input type="number" id="menuStock" min="0" value="0"></div>
+      <div class="num-field"><label for="menuPrice">금액(천원)</label><input type="number" id="menuPrice" min="1" style="width:72px;"></div>
+      <div class="num-field"><label for="menuStock">재고(수량)</label><input type="number" id="menuStock" min="0" value="0" style="width:72px;"></div>
     </div>
     <label class="child-toggle"><input type="checkbox" id="menuChild"> 어린이도 먹을 수 있는 메뉴</label>
     <button class="btn btn-add" onclick="addMenu()">추 가</button>
