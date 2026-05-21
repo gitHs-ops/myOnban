@@ -1067,7 +1067,13 @@ function renderAllMenus(){
   loadAllMenus();
   renderAllFilterTabs();
   var el=document.getElementById('allMenuList');
-  var filtered=filterAllCat==='전체'?allMenus:allMenus.filter(function(m){return m.cat===filterAllCat;});
+  var filtered=(filterAllCat==='전체'?allMenus:allMenus.filter(function(m){return m.cat===filterAllCat;})).slice();
+  filtered.sort(function(a,b){
+    var ca=a.cat||'',cb=b.cat||'';
+    if(ca!==cb)return ca<cb?-1:1;
+    var na=(a.name||''),nb=(b.name||'');
+    return na<nb?-1:na>nb?1:0;
+  });
   if(!filtered.length){el.innerHTML='<div class="empty">등록된 메뉴가 없어요.</div>';return;}
   el.innerHTML=filtered.map(function(m){
     var imgEl=m.imgUrl?'<img class="menu-thumb" src="'+m.imgUrl+'" alt="'+m.name+'" onclick="openImgPopup('+m.id+',\'all\')" onerror="this.style.display=\'none\'">':'<button class="img-btn" title="이미지 등록" onclick="openImgPopup('+m.id+',\'all\')">&#128247;</button>';
