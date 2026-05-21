@@ -243,9 +243,10 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
 .edit-label{font-size:12px;font-weight:700;color:#086266;display:block;margin-bottom:4px;}
 .edit-input{width:100%;border:1.5px solid #cde8e7;border-radius:8px;padding:8px 10px;font-size:13px;color:#333;background:#fff;font-family:inherit;outline:none;box-sizing:border-box;}
 .edit-input:focus{border-color:#086266;}
-.name-edit{cursor:pointer;}
+.name-edit{cursor:pointer;display:inline;}
 .name-edit:hover .edit-pen{opacity:1;}
 .edit-pen{font-size:12px;opacity:.4;margin-left:4px;transition:opacity .15s;}
+.menu-cb{width:16px;height:16px;accent-color:#086266;cursor:pointer;flex-shrink:0;margin-right:2px;}
 </style>
 </head>
 <body>
@@ -448,6 +449,7 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
   <div class="card">
     <div class="tabs" id="histSubTabs" style="margin-bottom:12px;"></div>
     <div id="historyList"></div>
+    <div id="allFilterTabs" class="tabs" style="display:none;margin-bottom:8px;"></div>
     <div id="allMenuList" style="display:none;"></div>
   </div>
 </div>
@@ -468,7 +470,7 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
 var IMGBB_KEY='b5a6e9481bb9cb4791108cf50761a459';
 var CAT_COLOR={'메인':'#1D9E75','반찬':'#378ADD','김치':'#D4537E','밀키트':'#E9A826','기타':'#888780'};
 var VALID_CATS=['메인','반찬','김치','밀키트','기타'];
-var menus=[],filterCat='전체',workDate='',calViewYear,calViewMonth,imgTargetId=null,parsedMenus=[],pendingImgUrl=null,menuEditTargetId=null,editPendingImgUrl=null;
+var menus=[],filterCat='전체',filterAllCat='전체',workDate='',calViewYear,calViewMonth,imgTargetId=null,parsedMenus=[],pendingImgUrl=null,menuEditTargetId=null,editPendingImgUrl=null;
 var imgCtx='menus',editCtx='menus';
 var allMenus=[];
 function _arr(ctx){return ctx==='all'?allMenus:menus;}
@@ -545,6 +547,7 @@ function renderAcList(){
   // 사전 + 현재 메뉴 목록 합치기
   var dict=getDict();
   menus.forEach(function(m){if(m.name&&dict.indexOf(m.name.trim())<0)dict.push(m.name.trim());});
+  allMenus.forEach(function(m){if(m.name&&dict.indexOf(m.name.trim())<0)dict.push(m.name.trim());});
   dict.sort();
   var filtered=q?dict.filter(function(n){return n.toLowerCase().indexOf(q.toLowerCase())>=0;}):dict;
   if(!filtered.length){list.classList.remove('open');return;}
@@ -880,7 +883,7 @@ function renderMenuList(){
     var chEl=m.child?' <span style="font-size:13px;">&#128103;</span>':'';
     return '<div class="menu-item">'+
       '<div class="cat-dot" style="background:'+(CAT_COLOR[m.cat]||'#888')+'"></div>'+imgEl+
-      '<div class="name name-edit" onclick="openMenuEditPopup('+m.id+')">'+m.name+chEl+' <span class="edit-pen">✏️</span></div>'+
+      '<div class="name"><span class="name-edit" onclick="openMenuEditPopup('+m.id+')">'+m.name+chEl+' <span class="edit-pen">✏️</span></span></div>'+
       '<div class="price-wrap"><span class="price-display" id="pd_'+m.id+'" onclick="startEditPrice('+m.id+')">'+(m.price||0).toLocaleString()+'천원</span><input class="price-input" id="pi_'+m.id+'" type="number" min="1" value="'+(m.price||0)+'" onblur="commitPrice('+m.id+')" onkeydown="if(event.key===\'Enter\')commitPrice('+m.id+');if(event.key===\'Escape\')cancelPrice('+m.id+');"></div>'+
       '<div class="qty-ctrl"><button class="qty-btn" onclick="changeStock('+m.id+',-1)">-</button><span class="qty">'+(m.stock||0)+'</span><button class="qty-btn" onclick="changeStock('+m.id+',1)">+</button></div>'+
       '<button class="del-btn" onclick="deleteMenu('+m.id+')">&#10005;</button>'+
@@ -937,13 +940,18 @@ function renderHistSubTabs(){
 function switchHistSubTab(tab){
   _histSubTab=tab;
   renderHistSubTabs();
+  var ft=document.getElementById('allFilterTabs');
   if(tab==='dates'){
     document.getElementById('historyList').style.display='';
     document.getElementById('allMenuList').style.display='none';
+    if(ft)ft.style.display='none';
     renderHistory();
   }else{
     document.getElementById('historyList').style.display='none';
-    document.getElementById('allMenuList').style.display='';
+    if(ft)ft.style.display='';
+    var el=document.getElementById('allMenuList');
+    el.style.display='';
+    el.innerHTML='<div class="empty">⏳ 메뉴 불러오는 중...</div>';
     importAllMenusFromSheet(function(){renderAllMenus();});
   }
 }
@@ -962,31 +970,81 @@ function exportAllMenusToSheet(){
   });
 }
 function importAllMenusFromSheet(cb){
-  var gasUrl=ONBAN_SHEET_URL;if(!gasUrl){if(cb)cb();return;}
+  var gasUrl=ONBAN_SHEET_URL;
+  if(!gasUrl){rebuildAllMenusFromHistory();if(cb)cb();return;}
   gasFetch(gasUrl+'?action=import_all_menus',function(err,d){
+    var gasMenus=[];
     if(!err&&d&&d.success&&d.menus&&d.menus.length){
       d.menus.forEach(function(m){if(!m.id)m.id=Date.now()+Math.random();});
-      allMenus=d.menus;saveAllMenus();
+      gasMenus=d.menus;
     }
+    // 로컬 히스토리에서 GAS 시트에 없는 메뉴 추가 (머지)
+    var nameMap={};
+    gasMenus.forEach(function(m){nameMap[(m.name||'').trim().toLowerCase()]=true;});
+    var h=JSON.parse(localStorage.getItem('menu_history')||'[]');
+    var idx=Date.now();
+    h.forEach(function(entry){
+      (entry.menus||[]).forEach(function(m){
+        if(!m.name)return;
+        var k=m.name.trim().toLowerCase();
+        if(!nameMap[k]){
+          nameMap[k]=true;
+          gasMenus.push({id:idx++,name:m.name,cat:m.cat||'기타',price:m.price||0,stock:0,child:m.child||false,imgUrl:m.imgUrl||null,count:1});
+        }
+      });
+    });
+    if(gasMenus.length){allMenus=gasMenus;saveAllMenus();}
     if(cb)cb();
   });
 }
+function renderAllFilterTabs(){
+  var cats=['전체','메인','반찬','김치','기타'];
+  var el=document.getElementById('allFilterTabs');
+  if(!el)return;
+  el.innerHTML=cats.map(function(c){
+    return '<button class="tab'+(filterAllCat===c?' active':'')+'" onclick="setAllFilter(\''+c+'\')">'+c+'</button>';
+  }).join('');
+}
+function setAllFilter(cat){filterAllCat=cat;renderAllFilterTabs();renderAllMenus();}
 function renderAllMenus(){
   loadAllMenus();
+  renderAllFilterTabs();
   var el=document.getElementById('allMenuList');
-  if(!allMenus.length){el.innerHTML='<div class="empty">등록된 메뉴가 없어요.</div>';return;}
-  el.innerHTML=allMenus.map(function(m){
+  var filtered=filterAllCat==='전체'?allMenus:allMenus.filter(function(m){return m.cat===filterAllCat;});
+  if(!filtered.length){el.innerHTML='<div class="empty">등록된 메뉴가 없어요.</div>';return;}
+  el.innerHTML=filtered.map(function(m){
     var imgEl=m.imgUrl?'<img class="menu-thumb" src="'+m.imgUrl+'" alt="'+m.name+'" onclick="openImgPopup('+m.id+',\'all\')" onerror="this.style.display=\'none\'">':'<button class="img-btn" title="이미지 등록" onclick="openImgPopup('+m.id+',\'all\')">&#128247;</button>';
     var chEl=m.child?' <span style="font-size:13px;">&#128103;</span>':'';
     var cnt='<span style="font-size:11px;color:#aaa;margin-left:4px;">'+(m.count||0)+'회</span>';
     return '<div class="menu-item">'+
+      '<input type="checkbox" class="menu-cb" id="cb_'+m.id+'" value="'+m.id+'">'+
       '<div class="cat-dot" style="background:'+(CAT_COLOR[m.cat]||'#888')+'"></div>'+imgEl+
-      '<div class="name name-edit" onclick="openMenuEditPopup('+m.id+',\'all\')">'+m.name+chEl+cnt+' <span class="edit-pen">✏️</span></div>'+
+      '<div class="name"><span class="name-edit" onclick="openMenuEditPopup('+m.id+',\'all\')">'+m.name+chEl+' <span class="edit-pen">✏️</span></span>'+cnt+'</div>'+
       '<div class="price-wrap"><span class="price-display" id="apd_'+m.id+'" onclick="startEditAllPrice('+m.id+')">'+(m.price||0).toLocaleString()+'천원</span><input class="price-input" id="api_'+m.id+'" type="number" min="1" value="'+(m.price||0)+'" onblur="commitAllPrice('+m.id+')" onkeydown="if(event.key===\'Enter\')commitAllPrice('+m.id+');if(event.key===\'Escape\')cancelAllPrice('+m.id+');"></div>'+
       '<div class="qty-ctrl"><button class="qty-btn" onclick="changeAllStock('+m.id+',-1)">-</button><span class="qty">'+(m.stock||0)+'</span><button class="qty-btn" onclick="changeAllStock('+m.id+',1)">+</button></div>'+
       '<button class="del-btn" onclick="deleteAllMenu('+m.id+')">&#10005;</button>'+
     '</div>';
-  }).join('')+'<div style="margin-top:16px;"><button class="btn btn-add" onclick="exportAllMenusToSheet()">🗄 메뉴 창고로 저장</button></div>';
+  }).join('')+
+  '<div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">'+
+  '<button class="btn btn-add" style="background:#1D9E75;" onclick="addSelectedToToday()">✅ 선택한 메뉴를 오늘의 메뉴에 추가</button>'+
+  '<button class="btn btn-add" onclick="exportAllMenusToSheet()">🗄 메뉴 창고로 저장</button>'+
+  '</div>';
+}
+function addSelectedToToday(){
+  var cbs=document.querySelectorAll('.menu-cb:checked');
+  if(!cbs.length){showToast('메뉴를 선택해주세요.');return;}
+  var added=0;
+  cbs.forEach(function(cb){
+    var id=Number(cb.value);
+    var m=allMenus.find(function(x){return x.id===id;});
+    if(m&&!menus.some(function(x){return x.name===m.name;})){
+      menus.push({id:Date.now()+Math.random(),name:m.name,cat:m.cat,price:m.price,stock:m.stock||0,child:m.child,imgUrl:m.imgUrl||null});
+      added++;
+    }
+  });
+  save();
+  if(added)showToast(added+'개를 오늘의 메뉴에 추가했어요!');
+  else showToast('이미 추가된 메뉴예요.');
 }
 function renderHistory(){
   renderHistSubTabs();
