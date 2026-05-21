@@ -127,7 +127,8 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
 .img-btn-cancel{width:100%;background:#086266;color:#fff;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;}
 .img-btn-cancel:disabled{opacity:.35;cursor:not-allowed;}
 .menuname-wrap{position:relative;flex:1;}
-.menuname-wrap input{width:100%;}
+.menuname-wrap input{width:100%;padding-right:32px;}
+.ac-toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#086266;font-size:14px;padding:4px 2px;line-height:1;}
 .dup-warn{display:none;font-size:12px;color:#c0392b;background:#fff0f0;border:1px solid #f5c0c0;border-radius:8px;padding:6px 10px;margin-top:6px;}
 .dup-warn.show{display:block;}
 .ac-list{display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid #086266;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:50;max-height:200px;overflow-y:auto;margin-top:3px;}
@@ -337,6 +338,7 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
   <div class="menuname-wrap">
     <input type="text" id="menuName" placeholder="메뉴명 입력" autocomplete="off"
       oninput="onMenuNameInput()" onkeydown="onMenuNameKey(event)">
+    <button type="button" class="ac-toggle" onmousedown="toggleAcAll(event)" tabindex="-1">▾</button>
     <div class="ac-list" id="acList"></div>
   </div>
 </div>
@@ -580,6 +582,26 @@ function saveToDict(names){
   names.forEach(function(n){n=n.trim();if(n&&dict.indexOf(n)<0)dict.push(n);});
   dict.sort();
   localStorage.setItem(DICT_KEY,JSON.stringify(dict));
+}
+function removeFromDict(name){
+  var dict=getDict();
+  var idx=dict.indexOf(name.trim());
+  if(idx>=0){dict.splice(idx,1);localStorage.setItem(DICT_KEY,JSON.stringify(dict));}
+}
+// ▾ 버튼 — 전체 목록 토글
+function toggleAcAll(e){
+  if(e)e.preventDefault();
+  var list=document.getElementById('acList');
+  if(list.classList.contains('open')){closeAcList();return;}
+  var dict=getDict().slice();
+  allMenus.forEach(function(m){if(m.name&&dict.indexOf(m.name.trim())<0)dict.push(m.name.trim());});
+  menus.forEach(function(m){if(m.name&&dict.indexOf(m.name.trim())<0)dict.push(m.name.trim());});
+  dict.sort();
+  acIndex=-1;
+  list.innerHTML=dict.map(function(n){
+    return '<div class="ac-item" data-val="'+n.replace(/"/g,'&quot;')+'" onmousedown="pickAc(this)">'+n+'</div>';
+  }).join('');
+  list.classList.add('open');
 }
 var acIndex=-1;
 function renderDatalist(){renderAcList();}  // 하위호환 유지
@@ -902,6 +924,8 @@ function saveMenuEditAll(){
   m.child=document.getElementById('editMenuChild').checked;
   touch(m);
   _save(editCtx);
+  // 이름 변경 시 dict 갱신
+  if(oldName!==m.name){removeFromDict(oldName);saveToDict([m.name]);}
   if(editCtx==='menus')renderAll();else{renderAllMenus();syncAllMenuToMenus(m,oldName);}
   document.getElementById('menuEditOverlay').classList.remove('open');
   menuEditTargetId=null;editPendingImgUrl=null;
