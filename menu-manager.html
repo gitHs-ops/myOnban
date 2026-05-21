@@ -454,6 +454,18 @@ select{width:100%;padding:9px 10px;border:1.5px solid #cde8e7;border-radius:10px
   </div>
 </div>
 
+<!-- 일일메뉴 전송 팝업 -->
+<div class="cal-overlay" id="sendToTodayOverlay" onclick="if(event.target===this)closeSendToTodayPopup()">
+  <div style="background:#fff;border-radius:16px;padding:22px;width:320px;max-width:93vw;max-height:80vh;display:flex;flex-direction:column;" onclick="event.stopPropagation()">
+    <div style="font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:10px;">📋 선택한 메뉴 목록</div>
+    <div id="sendToTodayList" style="flex:1;overflow-y:auto;max-height:280px;margin-bottom:14px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-add" style="flex:1;font-size:14px;" onclick="confirmSendToToday('add')">추가</button>
+      <button class="btn btn-add" style="flex:1;font-size:14px;background:#E9A826;color:#3A1D1D;" onclick="confirmSendToToday('replace')">대체</button>
+    </div>
+    <button style="margin-top:8px;width:100%;background:#eee;color:#555;border:none;border-radius:10px;padding:9px;font-size:13px;cursor:pointer;font-family:inherit;" onclick="closeSendToTodayPopup()">취소</button>
+  </div>
+</div>
 <!-- 추가/대체 모달 -->
 <div class="cal-overlay" id="histLoadOverlay" onclick="closeHistLoadModal(event)">
   <div style="background:#fff;border-radius:16px;padding:24px;width:280px;text-align:center;" onclick="event.stopPropagation()">
@@ -473,6 +485,7 @@ var VALID_CATS=['메인','반찬','김치','밀키트','기타'];
 var menus=[],filterCat='전체',filterAllCat='전체',workDate='',calViewYear,calViewMonth,imgTargetId=null,parsedMenus=[],pendingImgUrl=null,menuEditTargetId=null,editPendingImgUrl=null;
 var imgCtx='menus',editCtx='menus';
 var allMenus=[];
+var selectedAllIds=new Set();
 function _arr(ctx){return ctx==='all'?allMenus:menus;}
 function _save(ctx){if(ctx==='all')saveAllMenus();else save();}
 function _render(ctx){if(ctx==='all')renderAllMenus();else renderMenuList();}
@@ -1016,8 +1029,9 @@ function renderAllMenus(){
     var imgEl=m.imgUrl?'<img class="menu-thumb" src="'+m.imgUrl+'" alt="'+m.name+'" onclick="openImgPopup('+m.id+',\'all\')" onerror="this.style.display=\'none\'">':'<button class="img-btn" title="이미지 등록" onclick="openImgPopup('+m.id+',\'all\')">&#128247;</button>';
     var chEl=m.child?' <span style="font-size:13px;">&#128103;</span>':'';
     var cnt='<span style="font-size:11px;color:#aaa;margin-left:4px;">'+(m.count||0)+'회</span>';
+    var chk=selectedAllIds.has(m.id)?' checked':'';
     return '<div class="menu-item">'+
-      '<input type="checkbox" class="menu-cb" id="cb_'+m.id+'" value="'+m.id+'">'+
+      '<input type="checkbox" class="menu-cb" id="cb_'+m.id+'" value="'+m.id+'"'+chk+' onchange="toggleAllSel(this)">'+
       '<div class="cat-dot" style="background:'+(CAT_COLOR[m.cat]||'#888')+'"></div>'+imgEl+
       '<div class="name"><span class="name-edit" onclick="openMenuEditPopup('+m.id+',\'all\')">'+m.name+chEl+' <span class="edit-pen">✏️</span></span>'+cnt+'</div>'+
       '<div class="price-wrap"><span class="price-display" id="apd_'+m.id+'" onclick="startEditAllPrice('+m.id+')">'+(m.price||0).toLocaleString()+'천원</span><input class="price-input" id="api_'+m.id+'" type="number" min="1" value="'+(m.price||0)+'" onblur="commitAllPrice('+m.id+')" onkeydown="if(event.key===\'Enter\')commitAllPrice('+m.id+');if(event.key===\'Escape\')cancelAllPrice('+m.id+');"></div>'+
@@ -1025,26 +1039,52 @@ function renderAllMenus(){
       '<button class="del-btn" onclick="deleteAllMenu('+m.id+')">&#10005;</button>'+
     '</div>';
   }).join('')+
-  '<div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">'+
-  '<button class="btn btn-add" style="background:#1D9E75;" onclick="addSelectedToToday()">✅ 선택한 메뉴를 오늘의 메뉴에 추가</button>'+
-  '<button class="btn btn-add" onclick="exportAllMenusToSheet()">🗄 메뉴 창고로 저장</button>'+
+  '<div style="margin-top:16px;display:flex;gap:8px;">'+
+  '<button class="btn btn-add" style="flex:1;background:#1D9E75;font-size:12px;padding:10px 8px;" onclick="openSendToTodayPopup()">📤 선택 메뉴를 일일 메뉴로 보내기</button>'+
+  '<button class="btn btn-add" style="flex:0 0 auto;font-size:12px;padding:10px 10px;white-space:nowrap;" onclick="exportAllMenusToSheet()">🗄 메뉴 창고로 저장</button>'+
   '</div>';
 }
-function addSelectedToToday(){
-  var cbs=document.querySelectorAll('.menu-cb:checked');
-  if(!cbs.length){showToast('메뉴를 선택해주세요.');return;}
-  var added=0;
-  cbs.forEach(function(cb){
-    var id=Number(cb.value);
-    var m=allMenus.find(function(x){return x.id===id;});
-    if(m&&!menus.some(function(x){return x.name===m.name;})){
-      menus.push({id:Date.now()+Math.random(),name:m.name,cat:m.cat,price:m.price,stock:m.stock||0,child:m.child,imgUrl:m.imgUrl||null});
-      added++;
-    }
-  });
+function toggleAllSel(cb){
+  var id=Number(cb.value);
+  if(cb.checked)selectedAllIds.add(id);else selectedAllIds.delete(id);
+}
+function openSendToTodayPopup(){
+  if(!selectedAllIds.size){showToast('메뉴를 선택해주세요.');return;}
+  var selected=Array.from(selectedAllIds).map(function(id){return allMenus.find(function(m){return m.id===id;});}).filter(Boolean);
+  if(!selected.length){showToast('선택한 메뉴를 찾을 수 없어요.');return;}
+  document.getElementById('sendToTodayList').innerHTML=
+    '<div class="menu-list">'+selected.map(function(m){
+      return '<div class="menu-item" style="padding:8px 10px;">'+
+        '<div class="cat-dot" style="background:'+(CAT_COLOR[m.cat]||'#888')+'"></div>'+
+        '<div class="name" style="flex:1;font-size:13px;font-weight:500;">'+m.name+'</div>'+
+        '<span style="font-size:12px;color:#086266;font-weight:700;">'+(m.price||0).toLocaleString()+'천원</span>'+
+      '</div>';
+    }).join('')+'</div>';
+  document.getElementById('sendToTodayOverlay').classList.add('open');
+}
+function closeSendToTodayPopup(){
+  document.getElementById('sendToTodayOverlay').classList.remove('open');
+}
+function confirmSendToToday(mode){
+  var selected=Array.from(selectedAllIds).map(function(id){return allMenus.find(function(m){return m.id===id;});}).filter(Boolean);
+  if(!selected.length){closeSendToTodayPopup();return;}
+  if(mode==='replace'){
+    menus=selected.map(function(m){return {id:Date.now()+Math.random(),name:m.name,cat:m.cat,price:m.price,stock:m.stock||0,child:m.child,imgUrl:m.imgUrl||null};});
+    showToast(selected.length+'개로 일일 메뉴를 대체했어요!');
+  }else{
+    var existNames={};menus.forEach(function(m){existNames[m.name]=true;});
+    var added=0;
+    selected.forEach(function(m){
+      if(!existNames[m.name]){
+        menus.push({id:Date.now()+Math.random(),name:m.name,cat:m.cat,price:m.price,stock:m.stock||0,child:m.child,imgUrl:m.imgUrl||null});
+        added++;
+      }
+    });
+    showToast(added?added+'개를 일일 메뉴에 추가했어요!':'이미 추가된 메뉴예요.');
+  }
   save();
-  if(added)showToast(added+'개를 오늘의 메뉴에 추가했어요!');
-  else showToast('이미 추가된 메뉴예요.');
+  selectedAllIds.clear();
+  closeSendToTodayPopup();
 }
 function renderHistory(){
   renderHistSubTabs();

@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════
-// onban_sheet.gs — 구글 시트 연동// ══════════════════════════════════════════════════════
+// onban_sheet.gs — 구글 시트 연동 2026 05 21// ══════════════════════════════════════════════════════
 
 var SHEET_ID = '1_jAZK1zwob2zbiOwKRYzmpKkaswOAi4RUGC043ujiLo';
 
@@ -145,6 +145,29 @@ function loadSettings() {
     try { data[k] = JSON.parse(v); } catch(ex) { data[k] = v; }
   }
   return json({ success: true, data: data });
+}
+
+// ── 접속 로그 ──
+function logAccess(e) {
+  var ss    = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName('접속로그');
+  if (!sheet) {
+    sheet = ss.insertSheet('접속로그');
+    sheet.appendRow(['일시', 'User-Agent', 'Referrer', '페이지']);
+    sheet.getRange(1, 1, 1, 4)
+         .setFontWeight('bold').setBackground('#086266')
+         .setFontColor('#ffffff').setHorizontalAlignment('center');
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(1, 150);
+    sheet.setColumnWidth(2, 300);
+    sheet.setColumnWidth(3, 200);
+    sheet.setColumnWidth(4, 80);
+  }
+  var ua   = (e && e.parameter && e.parameter.ua)   || '';
+  var ref  = (e && e.parameter && e.parameter.ref)  || '';
+  var page = (e && e.parameter && e.parameter.page) || 'index';
+  sheet.appendRow([new Date(), ua, ref, page]);
+  return json({ success: true });
 }
 
 function json(obj) {

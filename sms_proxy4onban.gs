@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════
-// sms_proxy4onban.gs  —  오늘의 반찬 SMS + 알림톡 프록시
+// sms_proxy4onban.gs  —  오늘의 반찬 SMS + 알림톡 프록시 2026 05 21 v2
 //
 // 【설정 방법】
 //   GAS 프로젝트 속성 → 스크립트 속성 추가:
@@ -35,6 +35,9 @@ function doGet(e) {
   var action   = e.parameter.action   || 'sms';
   var receiver = e.parameter.receiver || '';
   var msg      = e.parameter.msg      || '';
+
+  // 접속 로그
+  if (action === 'log_access') return logAccess(e);
 
   // 날짜 목록 조회
   if (action === 'list_dates') return listDates();
