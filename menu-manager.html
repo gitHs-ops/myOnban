@@ -580,7 +580,7 @@ function getDict(){return JSON.parse(localStorage.getItem(DICT_KEY)||'[]');}
 function saveToDict(names){
   var dict=getDict();
   names.forEach(function(n){n=n.trim();if(n&&dict.indexOf(n)<0)dict.push(n);});
-  dict.sort();
+  dict.sort(function(a,b){return a.localeCompare(b,'ko',{numeric:true});});
   localStorage.setItem(DICT_KEY,JSON.stringify(dict));
 }
 function removeFromDict(name){
@@ -596,7 +596,7 @@ function toggleAcAll(e){
   var dict=getDict().slice();
   allMenus.forEach(function(m){if(m.name&&dict.indexOf(m.name.trim())<0)dict.push(m.name.trim());});
   menus.forEach(function(m){if(m.name&&dict.indexOf(m.name.trim())<0)dict.push(m.name.trim());});
-  dict.sort();
+  dict.sort(function(a,b){return a.localeCompare(b,'ko',{numeric:true});});
   acIndex=-1;
   list.innerHTML=dict.map(function(n){
     return '<div class="ac-item" data-val="'+n.replace(/"/g,'&quot;')+'" onmousedown="pickAc(this)">'+n+'</div>';
@@ -613,7 +613,7 @@ function renderAcList(){
   var dict=getDict();
   menus.forEach(function(m){if(m.name&&dict.indexOf(m.name.trim())<0)dict.push(m.name.trim());});
   allMenus.forEach(function(m){if(m.name&&dict.indexOf(m.name.trim())<0)dict.push(m.name.trim());});
-  dict.sort();
+  dict.sort(function(a,b){return a.localeCompare(b,'ko',{numeric:true});});
   var filtered=q?dict.filter(function(n){return n.toLowerCase().indexOf(q.toLowerCase())>=0;}):dict;
   if(!filtered.length){list.classList.remove('open');return;}
   acIndex=-1;
@@ -1144,9 +1144,9 @@ function renderAllMenus(){
   var filtered=(filterAllCat==='전체'?allMenus:allMenus.filter(function(m){return m.cat===filterAllCat;})).slice();
   filtered.sort(function(a,b){
     var ca=a.cat||'',cb=b.cat||'';
-    if(ca!==cb)return ca<cb?-1:1;
-    var na=(a.name||''),nb=(b.name||'');
-    return na<nb?-1:na>nb?1:0;
+    var catCmp=ca.localeCompare(cb,'ko');
+    if(catCmp!==0)return catCmp;
+    return (a.name||'').localeCompare(b.name||'','ko',{numeric:true});
   });
   if(!filtered.length){el.innerHTML='<div class="empty">등록된 메뉴가 없어요.</div>';return;}
   el.innerHTML=filtered.map(function(m){
