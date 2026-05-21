@@ -1435,7 +1435,7 @@ function getAdminInfo(){
 function gasFetchPost(url,body,cb){
   var ctrl=new AbortController();
   var timer=setTimeout(function(){ctrl.abort();},30000);
-  fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),redirect:'follow',signal:ctrl.signal})
+  fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body),redirect:'follow',signal:ctrl.signal})
     .then(function(r){clearTimeout(timer);return r.json();})
     .then(function(d){cb(null,d);})
     .catch(function(e){clearTimeout(timer);cb(e,null);});
