@@ -983,8 +983,8 @@ function switchHistSubTab(tab){
     if(ft)ft.style.display='';
     var el=document.getElementById('allMenuList');
     el.style.display='';
-    el.innerHTML='<div class="empty">⏳ 메뉴 불러오는 중...</div>';
-    importAllMenusFromSheet(function(){renderAllMenus();});
+    loadAllMenus();  // localStorage만 사용 (GAS 호출 없음)
+    renderAllMenus();
   }
 }
 function changeAllStock(id,d){var m=allMenus.find(function(x){return x.id===id;});if(!m)return;m.stock=Math.max(0,(m.stock||0)+d);touch(m);saveAllMenus();renderAllMenus();}
@@ -1922,6 +1922,12 @@ window.onload=function(){
   workDate=toISO(new Date());loadMenus(workDate);
   document.getElementById('dateDisplayBtn').textContent=fmtDate(workDate);
   renderAll();renderHistory();
+  // 페이지 로드 시 1회 GAS "등록된모든메뉴" 시트 → localStorage 동기화
+  importAllMenusFromSheet(function(){
+    // 자동완성 사전도 갱신
+    var names=allMenus.map(function(m){return m.name;}).filter(Boolean);
+    if(names.length)saveToDict(names);
+  });
   // 기존 모든 히스토리 메뉴명을 사전에 동기화 (최초 실행 대비)
   (function(){
     var h=JSON.parse(localStorage.getItem('menu_history')||'[]');
